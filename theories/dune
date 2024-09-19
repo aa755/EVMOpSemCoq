@@ -1,0 +1,16 @@
+(include_subdirs qualified)
+(coq.theory
+ (name EVMOpSem)                   ; This will determine the top-level Coq
+                                   ; module of your theory, modules will
+                                   ; be MyPlugin.A, etc., when seen from the
+                                   ; outside.
+
+; (package coq-evm-opsem)           ; Adding this line will make your
+                                   ; library installable in the opam package
+)
+; (libraries coq-my-plugin.plugin)) ; Here you should declare all
+                                   ; OCaml plugin dependencies
+                                   ; for your Coq files.
+
+; Other important fields are `modules` and `flags`, see Dune
+; documentation for more details.

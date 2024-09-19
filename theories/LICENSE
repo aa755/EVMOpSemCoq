@@ -1,4 +1,4 @@
-The files in this directory were originally obtained from the eth-isabelle project of Yoichi Hirai, by running the Lem compiler to produce .v files.
+The files in this directory, but not in its subdirectories, were originally obtained from the eth-isabelle project of Yoichi Hirai, by running the Lem compiler to produce .v files.
 We modified the produced .v files and may have introduced mistakes, rendering them completely useless.
 The licence of that project can be found at:
 https://github.com/pirapira/eth-isabelle/blob/master/LICENSE

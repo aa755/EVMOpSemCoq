@@ -1,8 +1,8 @@
 Require Import Bvector.
 Require Export Bvector.
 
-Require Import Evm.Zdigits.
-Require Export Evm.Zdigits.
+Require Import EVMOpSem.Zdigits.
+Require Export EVMOpSem.Zdigits.
 
 (*
 Module ListNotations.
