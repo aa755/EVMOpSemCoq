@@ -610,7 +610,7 @@ Definition end_transaction  (f : tr_result ) (tr : transaction ) (block : block_
   let state := kill_accounts(f_state  f)(f_killed  f) in
   let refund := Coq.Init.Peano.plus (Coq.Init.Peano.mult ( (List.length(f_killed  f))) refund_selfdestruct) (Z.abs_nat(f_refund  f)) in
   (* refund gas to account *)
-  let r := Coq.Init.Peano.plus (Z.abs_nat(f_gas  f)) (nat_min refund ( Coq.Numbers.Natural.Peano.NPeano.div( Coq.Init.Peano.minus(word256ToNatural(tr_gas_limit  tr)) (Z.abs_nat(f_gas  f)))( 2%nat))) in
+  let r := Coq.Init.Peano.plus (Z.abs_nat(f_gas  f)) (nat_min refund ( Nat.div( Coq.Init.Peano.minus(word256ToNatural(tr_gas_limit  tr)) (Z.abs_nat(f_gas  f)))( 2%nat))) in
   let refund_sum := word256FromNatural ( Coq.Init.Peano.mult r (word256ToNatural(tr_gas_price  tr))) in
   let state := add_balance state(tr_from  tr) refund_sum in
   add_balance state(block_coinbase  block) ( word256Minus (word256Mult(tr_gas_limit tr)(tr_gas_price  tr)) refund_sum).
