@@ -1810,7 +1810,8 @@ Record account_state : Type := {
   account_killed : bool 
     (* the boolean that indicates the account has executed SUICIDE in this transaction. *)
   (* The flag causes a destruction of the contract at the end of a transaction. *)
-}.
+  }.
+
 Notation "{[ r 'with' 'account_address' := e ]}" := ({| account_address := e; account_storage := account_storage r; account_code := account_code r; account_balance := account_balance r; account_ongoing_calls := account_ongoing_calls r; account_killed := account_killed r |}).
 Notation "{[ r 'with' 'account_storage' := e ]}" := ({| account_storage := e; account_address := account_address r; account_code := account_code r; account_balance := account_balance r; account_ongoing_calls := account_ongoing_calls r; account_killed := account_killed r |}).
 Notation "{[ r 'with' 'account_code' := e ]}" := ({| account_code := e; account_address := account_address r; account_storage := account_storage r; account_balance := account_balance r; account_ongoing_calls := account_ongoing_calls r; account_killed := account_killed r |}).
@@ -1942,3 +1943,12 @@ Inductive build_vctx_returned: (account_state) -> (return_result) -> (variable_c
        ;vctx_logs := v_logs
        ;vctx_refund := v_refund
       |}).
+
+Print Assumptions instruction_sem.
+(*
+Axioms:
+Description.constructive_definite_description
+  : forall (A : Type) (P : A -> Prop), (exists ! x : A, P x) -> {x : A | P x}
+Classical_Prop.classic : forall P : Prop, P \/ ~ P
+coqharness.DAEMON : forall a : Type, a
+*)
