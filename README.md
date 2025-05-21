@@ -1,5 +1,6 @@
 self-contained EVM operational semantics in Coq, generated from [Yoichi's EVM semantics](https://github.com/pirapira/eth-isabelle) and [Lem](https://github.com/rems-project/lem)
 
+the `step` function in block.v is the top-level eval function. `step` does not fully evaluate a transaction: it only evaluates it to the next call. however, repeating `step` will finish the evaluation.
 
 tested on 25 Sept 2024, 11am EST:
 
