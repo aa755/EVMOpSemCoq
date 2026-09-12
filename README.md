@@ -1,5 +1,28 @@
 self-contained EVM operational semantics in Coq, generated from [Yoichi's EVM semantics](https://github.com/pirapira/eth-isabelle) and [Lem](https://github.com/rems-project/lem)
 
+## Monad Workspace Branch
+
+This branch starts from upstream commit
+`596e2ca399d8ac23bfc64a2e7136fa9c51576b5e`. Its theory sources were copied
+byte-for-byte from `monadproofs/EVMOpSem/` at Monad proof-repository commit
+`a2574a792`. No model or proof bodies were changed during extraction.
+
+The inherited changes from that snapshot are qualified imports, Rocq
+compatibility fixes for arithmetic names and four proofs in `coqharness.v`,
+existing diagnostic commands in `evm.v`, and the comment-only deprecated
+`evmfull.v`. License/provenance files are preserved unchanged; extraction is
+not a resolution of their incomplete license-text documentation.
+
+The Dune library is `EVMOpSem`, in package `rocq-evm-op-sem`, depending only
+on `Corelib` and `Stdlib`. Within the composed workspace, place this checkout
+at `fmdeps/EVMOpSemCoq/` and declare `EVMOpSem` in the client's `theories`.
+Clients use `Require Import EVMOpSem.block.`; this library has no dependency
+on Monad or SkyLabs automation.
+
+Build with `dune build @install` in this repository, or
+`dune build @fmdeps/EVMOpSemCoq/install` from the workspace root. The
+historical test instructions below describe the original upstream setup.
+
 the `step` function in block.v is the top-level eval function. `step` does not fully evaluate a transaction: it only evaluates it to the next call. however, repeating `step` will finish the evaluation.
 
 tested on 25 Sept 2024, 11am EST:

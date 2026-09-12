@@ -256,7 +256,7 @@ Definition Rge_bool (x y: R): bool := (Rgt_bool x y) || (Reqb x y).
 Definition Rdown (x:R): Z := ((up x) - 1)%Z.
 
 Lemma false_eq_true_False: (false = true) <-> False.
-Proof. intuition. Qed.
+Proof. split; intro H; [discriminate | contradiction]. Qed.
 
 Lemma false_eq_true_P: forall (P:Prop), false = true -> P.
 Proof. intros P H; rewrite false_eq_true_False in H; tauto. Qed.
@@ -274,20 +274,32 @@ Proof.
 Qed.
 
 Lemma Rle_bool_le : forall (x y:R), (Rle_bool x y = true) <-> (x <= y)%R.
-Proof. intros; unfold Rle_bool; rewrite orb_true_iff, Reqb_eq, Rlt_bool_lt; intuition. Qed.
+Proof.
+ intros x y; unfold Rle_bool; rewrite orb_true_iff, Reqb_eq, Rlt_bool_lt.
+ split.
+ { intros [Hlt | Heq]; [apply Rlt_le | apply Req_le]; assumption. }
+ { intro Hle.
+   destruct (Rle_lt_or_eq_dec x y Hle) as [Hlt | Heq];
+     [left | right]; assumption. }
+Qed.
 
 Lemma Rgt_iff_not_le : forall (r1 r2:R), (r1 > r2)%R <-> ~ (r1 <= r2)%R.
 Proof. intros. split. apply Rgt_not_le. apply Rnot_le_gt. Qed.
 
 Lemma Rgt_bool_gt : forall (x y:R), (Rgt_bool x y = true) <-> (x > y)%R.
 Proof.
- intros; unfold Rgt_bool;
- rewrite negb_true_iff, Rgt_iff_not_le, <- Rle_bool_le;
- destruct (Rle_bool x y); intuition.
+ intros x y; unfold Rgt_bool.
+ rewrite negb_true_iff, Rgt_iff_not_le, <- Rle_bool_le.
+ destruct (Rle_bool x y); split; intro H; try discriminate;
+   try contradiction; reflexivity.
 Qed.
 
 Lemma Rge_bool_ge : forall (x y:R), (Rge_bool x y = true) <-> (x >= y)%R.
-Proof. intros; unfold Rge_bool; rewrite orb_true_iff, Rgt_bool_gt, Reqb_eq; intuition. Qed.
+Proof.
+ intros x y; unfold Rge_bool; rewrite orb_true_iff, Rgt_bool_gt, Reqb_eq.
+ unfold Rge.
+ tauto.
+Qed.
 
 (* Sets *)
 

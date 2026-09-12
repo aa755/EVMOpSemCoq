@@ -1,0 +1,10 @@
+_build/
+*.opam
+*.vo
+*.vos
+*.vok
+*.glob
+.*.aux
+.lia.cache
+.nia.cache
+*~

@@ -58,10 +58,10 @@ Definition word8NatOp  (binop : bitSequence  -> nat  -> bitSequence ) (w1 : word
 Definition word8UnaryOp  (op : bitSequence  -> bitSequence ) (w : word8 )  : word8 :=  bs_to_w8 (op (w8_to_bs w)).
 (* [?]: removed value specification. *)
 
-Definition word8ToNat  (w : word8 )  : nat :=  Z.abs_nat ( Coq.ZArith.Zdiv.Zmod( (integerFromBitSeq (w8_to_bs w)))((Z.pred (Z.pos (P_of_succ_nat 256%nat))))).
+Definition word8ToNat  (w : word8 )  : nat :=  Z.abs_nat ( Z.modulo( (integerFromBitSeq (w8_to_bs w)))((Z.pred (Z.pos (P_of_succ_nat 256%nat))))).
 (* [?]: removed value specification. *)
 
-Definition word8ToNatural  (w : word8 )  : nat :=   (Z.abs_nat ( Coq.ZArith.Zdiv.Zmod( (integerFromBitSeq (w8_to_bs w)))((Z.pred (Z.pos (P_of_succ_nat 256%nat)))))).
+Definition word8ToNatural  (w : word8 )  : nat :=   (Z.abs_nat ( Z.modulo( (integerFromBitSeq (w8_to_bs w)))((Z.pred (Z.pos (P_of_succ_nat 256%nat)))))).
 (* [?]: removed value specification. *)
 
 Definition word8ToInt  (w : word8 )  : Z :=   (integerFromBitSeq (w8_to_bs w)).

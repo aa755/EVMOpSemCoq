@@ -332,7 +332,7 @@ Instance x202_NumDivision : NumDivision bitSequence := {
 
 (* [?]: removed value specification. *)
 
-Definition bitSeqMod  (bs1 : bitSequence ) (bs2 : bitSequence )  : bitSequence :=  bitSeqArithBinOp Coq.ZArith.Zdiv.Zmod bs1 bs2.
+Definition bitSeqMod  (bs1 : bitSequence ) (bs2 : bitSequence )  : bitSequence :=  bitSeqArithBinOp Z.modulo bs1 bs2.
 
 Instance x201_NumRemainder : NumRemainder bitSequence := { 
    numRemainder  :=  bitSeqMod
