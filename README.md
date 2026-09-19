@@ -57,3 +57,19 @@ the operational entry points retain only `Classical_Prop.classic` and
 contains unrelated abstract set operations; these do not appear in that closure.
 Historical comments (including the deprecated, commented-out `evmfull.v`) are
 not active declarations.
+
+### Nested rollback
+
+Call frames now save the destruction list alongside world state and the caller
+context. CALL/CALLCODE, DELEGATECALL, and CREATE save this journal. Exceptional
+return restores it. The same restoration is used when Homestead code deposit
+runs out of gas; the previous branch restored world state but imported the
+failed initcode's logs/refund and retained its destruction list.
+
+`tests/Rollback.v` checks an actual five-step suffix: C's pending SELFDESTRUCT,
+B's invalid instruction and exceptional return, then A's STOP and successful
+completion. Before the repair it retained C; afterwards it preserves precisely
+the destruction list from before B's call. A successful B preserves C instead.
+Additional quantified checks cover saved world, storage, gas, logs and refunds,
+and code-deposit failure. This is a machine-level regression, not a proof that
+all transaction semantics agrees with Ethereum.

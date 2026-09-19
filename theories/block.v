@@ -263,9 +263,19 @@ Inductive stack_hint : Type :=
  | ReturnTo:  Z  ->  Z  -> stack_hint .
 Definition stack_hint_default: stack_hint  := NoHint.
 
+(* A frame journals transaction-wide destruction effects as well as the
+   caller's world and local substate (logs and refund are in saved_vctx). *)
+Record call_frame : Type := {
+  saved_world : world_state;
+  saved_vctx : variable_ctx;
+  saved_cctx : constant_ctx;
+  saved_hint : stack_hint;
+  saved_killed : list address
+}.
+
 Record global : Type := {
   g_orig : world_state ;
-  g_stack : list  ((world_state  * variable_ctx  * constant_ctx  * stack_hint ) % type);
+  g_stack : list call_frame;
   g_current : world_state ;
   g_cctx : constant_ctx ;
   g_killed : list  address ;
@@ -358,6 +368,15 @@ Definition create_account  (n_state : word160  -> block_account ) (new_addr : wo
 
 Definition calc_address  (addr : word160 ) (nonce : (Bvector  256) )  : word160 :=  w256_to_address (keccak (RLP (Node [RLP_address addr; RLP_w256 nonce]))).
 
+Definition restore_failed_call (g : global) (oldstate : world_state)
+    (v : variable_ctx) (c : constant_ctx) (old_killed : list address)
+    (rest : list call_frame) : global :=
+  {| g_orig := g_orig g; g_current := oldstate;
+     g_stack := rest; g_cctx := c; g_killed := old_killed;
+     g_create := g_create g;
+     g_vmstate := InstructionContinue
+       {[ v with vctx_stack := word256FromNumeral 0%nat :: vctx_stack v ]} |}.
+
 Definition step  (net : network )  : global_state  -> global_state :=  
   fun (x : global_state ) =>
     match (x) with | Finished st => Finished st | Unimplemented =>
@@ -387,7 +406,7 @@ Definition step  (net : network )  : global_state  -> global_state :=
                         (vctx_origin  v) (vctx_gasprice  v) (vctx_block  v) in
             Continue
               ( {[ {[ {[{[ global1 with g_vmstate:=InstructionContinue nv  ]} with g_cctx:=cctx  ]} with g_current:=n_state  ]} with g_stack:=(
-              (state,v,c,get_hint stuff) :: (g_stack global1))  ]})
+              (Build_call_frame state v c (get_hint stuff) (g_killed global1)) :: (g_stack global1))  ]})
         | ContractDelegateCall args =>
         let n_state := update_return state (cctx_this  c) v in
       if nat_gtb (List.length (g_stack  global1)) ( 1023%nat) then
@@ -405,7 +424,7 @@ Definition step  (net : network )  : global_state  -> global_state :=
                     (vctx_origin  v) (vctx_gasprice  v) (vctx_block  v) in
         Continue
           ( {[ {[ {[{[ global1 with g_vmstate:=InstructionContinue nv  ]} with g_cctx:=cctx  ]} with g_current:=n_state  ]} with g_stack:=(
-          (state,v,c,get_hint stuff) :: (g_stack global1))  ]})
+          (Build_call_frame state v c (get_hint stuff) (g_killed global1)) :: (g_stack global1))  ]})
         | ContractCreate args =>
         let addr := calc_address (cctx_this  c)
                       (block_account_nonce  (state (cctx_this  c))) in
@@ -441,7 +460,7 @@ Definition step  (net : network )  : global_state  -> global_state :=
         let v := {[ v with vctx_gas := remaining_gas  ]} in
         Continue
           ( {[ {[ {[{[ global1 with g_vmstate:=InstructionContinue nv  ]} with g_cctx:=cctx  ]} with g_current:=n_state  ]} with g_stack:=(
-          (state,v,c,CreateAddress addr) :: (g_stack global1))  ]})
+          (Build_call_frame state v c (CreateAddress addr) (g_killed global1)) :: (g_stack global1))  ]})
         | ContractFail _ =>
         match ((g_stack  global1)) with | [] =>
           Finished
@@ -449,11 +468,8 @@ Definition step  (net : network )  : global_state  -> global_state :=
                                                     (Z.pos
                                                        (P_of_succ_nat 0%nat))));f_refund:=(
             (Z.pred (Z.pos (P_of_succ_nat 0%nat))));f_logs := [] |}
-          | (oldstate, v, c, _) :: rest =>
-          let v := {[ v with vctx_stack :=(word256FromNumeral 0%nat) ::
-                                          (vctx_stack v)  ]} in
-        Continue
-          ( {[ {[ {[{[ global1 with g_vmstate:=InstructionContinue v  ]} with g_cctx:=c  ]} with g_current:=oldstate  ]} with g_stack:=rest  ]})
+          | (Build_call_frame oldstate v c _ old_killed) :: rest =>
+          Continue (restore_failed_call global1 oldstate v c old_killed rest)
         end | ContractSuicide dst =>
         let n_dst := {[ (state dst) with block_account_balance := word256Add
                                                                     (block_account_balance  (
@@ -470,7 +486,7 @@ Definition step  (net : network )  : global_state  -> global_state :=
       match ((g_stack  global1)) with | [] =>
         Finished
           ({|f_state := state;f_killed := killed;f_refund :=(vctx_refund  v);f_gas :=(vctx_gas  v);f_logs :=(vctx_logs  v) |})
-        | (_, nv, nc, is_new) :: rest =>
+        | (Build_call_frame _ nv nc is_new _) :: rest =>
         let n_state := match ( is_new) with | CreateAddress new_addr =>
                          create_account state new_addr [] | _ => state end in
       if beq_nat (List.length rest) ( 0%nat) && (g_create  global1) then
@@ -489,7 +505,7 @@ Definition step  (net : network )  : global_state  -> global_state :=
       match ((g_stack  global1)) with | [] =>
         Finished
           {|f_state := n_state;f_killed :=(g_killed  global1);f_refund :=(vctx_refund  v);f_gas :=(vctx_gas  v);f_logs :=(vctx_logs  v) |}
-        | (_, nv, c, ReturnTo mem_start mem_size) :: rest =>
+        | (Build_call_frame _ nv c (ReturnTo mem_start mem_size) _) :: rest =>
         let acc := n_state (cctx_this  c) in
       let nv := {[ {[ nv with vctx_memory := put_return_values
                                                (vctx_memory  nv) bytes
@@ -498,13 +514,12 @@ Definition step  (net : network )  : global_state  -> global_state :=
       let nv := vctx_update_from_world nv (acc : block_account ) n_state v in
       Continue
         ( {[ {[ {[{[ global1 with g_vmstate:=InstructionContinue nv  ]} with g_cctx:=c  ]} with g_current:=n_state  ]} with g_stack:=rest  ]})
-        | (old_state, nv, c, CreateAddress new_addr) :: rest =>
+        | (Build_call_frame old_state nv c (CreateAddress new_addr) old_killed) :: rest =>
         if (list_equal_by classical_boolean_equivalence bytes []) &&
            (beq_nat (List.length rest) ( 0%nat) && (g_create  global1)) then
           Finished
             {|f_state:=n_state;f_killed:=(g_killed global1);f_gas:=(vctx_gas v);f_refund:=(vctx_refund v);f_logs :=(vctx_logs  v) |}
         else
-          match (
           if int_ltb (vctx_gas  v)
                ((Z.pred
                    (Z.pos
@@ -513,9 +528,8 @@ Definition step  (net : network )  : global_state  -> global_state :=
              &&
              int_lteb homestead_block
                ((two_compl_value 255 (block_number (vctx_block  v)))) then
-            (old_state, {[ v with vctx_gas :=(Z.pred
-                                                (Z.pos (P_of_succ_nat 0%nat)))  ]},(
-            word256FromNumeral 0%nat)) else
+            Continue (restore_failed_call global1 old_state nv c old_killed rest)
+          else match (
             if int_ltb (vctx_gas  v)
                  ((Z.pred
                      (Z.pos
