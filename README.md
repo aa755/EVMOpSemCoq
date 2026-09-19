@@ -147,3 +147,18 @@ returned `[]`, because the slicing loop never recognized `0 <= 0`. This affected
 PUSH decoding, calldata, and memory helpers. `tests/Harness.v` now checks slicing
 and a PUSH2 followed by STOP. These are additional conformance repairs discovered
 while constructing the concrete non-interference witness.
+
+### PUSH decoding and jump boundaries
+
+`decode_bytes` scans original bytes while tracking pending PUSH operands.
+Operand positions retain `Unknown original_byte`, preserving raw code-copy
+reads while preventing those positions from being accepted as JUMPDEST.
+There is exactly one entry per original byte. PUSH arguments are padded to
+the declared width; virtual padding does not extend the code length or byte map.
+The existing `program` record and interpreter API are unchanged. `fix_push`
+remains a compatibility wrapper for instruction-list callers.
+
+`tests/Decoder.v` proves stream length, immediate length, and treatment of all
+operand positions. Regressions cover PUSH1–PUSH32, all 256 opcode-byte roundtrips,
+raw byte access, truncated PUSH2 value/PC, rejected jumps into data, and a genuine
+following JUMPDEST. The assumption audit and kernel checker include these tests.
