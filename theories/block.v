@@ -291,21 +291,33 @@ Notation "{[ r 'with' 'g_vmstate' := e ]}" := ({| g_vmstate := e; g_orig := g_or
 Notation "{[ r 'with' 'g_create' := e ]}" := ({| g_create := e; g_orig := g_orig r; g_stack := g_stack r; g_current := g_current r; g_cctx := g_cctx r; g_killed := g_killed r; g_vmstate := g_vmstate r |}).
 Definition global_default: global  := {| g_orig := world_state_default; g_stack := []; g_current := world_state_default; g_cctx := constant_ctx_default; g_killed := []; g_vmstate := instruction_result_default; g_create := bool_default |}.
 
+Inductive execution_outcome : Type :=
+| ExecutionSuccess (output : list byte)
+| ExecutionFailure (reasons : list failure_reason).
+
+Inductive rejection_reason : Type :=
+| NonceMismatch
+| InsufficientFunds
+| BlockGasLimitExceeded
+| IntrinsicGasTooLow.
+
 Record tr_result : Type := {
+  f_outcome : execution_outcome;
   f_state : world_state ;
   f_killed : list  address ;
   f_gas : Z ;
   f_refund : Z ;
   f_logs : list  log_entry 
 }.
-Notation "{[ r 'with' 'f_state' := e ]}" := ({| f_state := e; f_killed := f_killed r; f_gas := f_gas r; f_refund := f_refund r; f_logs := f_logs r |}).
-Notation "{[ r 'with' 'f_killed' := e ]}" := ({| f_killed := e; f_state := f_state r; f_gas := f_gas r; f_refund := f_refund r; f_logs := f_logs r |}).
-Notation "{[ r 'with' 'f_gas' := e ]}" := ({| f_gas := e; f_state := f_state r; f_killed := f_killed r; f_refund := f_refund r; f_logs := f_logs r |}).
-Notation "{[ r 'with' 'f_refund' := e ]}" := ({| f_refund := e; f_state := f_state r; f_killed := f_killed r; f_gas := f_gas r; f_logs := f_logs r |}).
-Notation "{[ r 'with' 'f_logs' := e ]}" := ({| f_logs := e; f_state := f_state r; f_killed := f_killed r; f_gas := f_gas r; f_refund := f_refund r |}).
-Definition tr_result_default: tr_result  := {| f_state := world_state_default; f_killed := []; f_gas := Z_default; f_refund := Z_default; f_logs := [] |}.
+Notation "{[ r 'with' 'f_state' := e ]}" := ({| f_outcome := f_outcome r; f_state := e; f_killed := f_killed r; f_gas := f_gas r; f_refund := f_refund r; f_logs := f_logs r |}).
+Notation "{[ r 'with' 'f_killed' := e ]}" := ({| f_outcome := f_outcome r; f_killed := e; f_state := f_state r; f_gas := f_gas r; f_refund := f_refund r; f_logs := f_logs r |}).
+Notation "{[ r 'with' 'f_gas' := e ]}" := ({| f_outcome := f_outcome r; f_gas := e; f_state := f_state r; f_killed := f_killed r; f_refund := f_refund r; f_logs := f_logs r |}).
+Notation "{[ r 'with' 'f_refund' := e ]}" := ({| f_outcome := f_outcome r; f_refund := e; f_state := f_state r; f_killed := f_killed r; f_gas := f_gas r; f_logs := f_logs r |}).
+Notation "{[ r 'with' 'f_logs' := e ]}" := ({| f_outcome := f_outcome r; f_logs := e; f_state := f_state r; f_killed := f_killed r; f_gas := f_gas r; f_refund := f_refund r |}).
+Definition tr_result_default: tr_result  := {| f_outcome := ExecutionSuccess []; f_state := world_state_default; f_killed := []; f_gas := Z_default; f_refund := Z_default; f_logs := [] |}.
 
 Inductive global_state : Type := 
+ | Rejected (reason : rejection_reason) (unchanged : world_state): global_state
  | Unimplemented: global_state 
  | Continue:  global  -> global_state 
  | Finished:  tr_result  -> global_state .
@@ -377,9 +389,21 @@ Definition restore_failed_call (g : global) (oldstate : world_state)
      g_vmstate := InstructionContinue
        {[ v with vctx_stack := word256FromNumeral 0%nat :: vctx_stack v ]} |}.
 
+(* Root CREATE has one synthetic caller frame, which must never be resumed
+   after initcode terminates. Its transaction checkpoint includes the fee debit
+   and sender nonce increment, which survive execution failure. *)
+Definition root_creation_frame (g : global) (rest : list call_frame) : bool :=
+  andb (g_create g) (match rest with [] => true | _ => false end).
+
+Definition fail_transaction (checkpoint : world_state)
+    (reasons : list failure_reason) : global_state :=
+  Finished {| f_outcome := ExecutionFailure reasons; f_state := checkpoint;
+              f_killed := []; f_gas := 0; f_refund := 0; f_logs := [] |}.
+
 Definition step  (net : network )  : global_state  -> global_state :=  
   fun (x : global_state ) =>
-    match (x) with | Finished st => Finished st | Unimplemented =>
+    match (x) with | Rejected why st => Rejected why st
+    | Finished st => Finished st | Unimplemented =>
       Unimplemented | Continue global1 => let orig :=(g_orig  global1) in
     let c :=(g_cctx  global1) in let state :=(g_current  global1) in
     match ((g_vmstate  global1)) with
@@ -432,6 +456,9 @@ Definition step  (net : network )  : global_state  -> global_state :=
            (createarg_value  args) ||
          (nat_gtb (List.length (g_stack  global1)) ( 1023%nat) ||
           (block_account_exists  (state addr))) then
+        if root_creation_frame global1 (g_stack global1) then
+          fail_transaction orig [ShouldNotHappen]
+        else
         let nv := {[ v with vctx_stack :=(word256FromNumeral 0%nat) ::
                                          (vctx_stack  v)  ]} in
         Continue
@@ -448,6 +475,7 @@ Definition step  (net : network )  : global_state  -> global_state :=
         let n_state := update_world n_state addr acc in
         let n_state := transfer_balance n_state (cctx_this  c) addr
                          (createarg_value  args) in let passed_gas : Z  :=
+        if root_creation_frame global1 (g_stack global1) then vctx_gas v else
         if int_gteb ((two_compl_value 255 (block_number (vctx_block  v))))
              (Coq.ZArith.BinInt.Z.mul
                 ((Z.pred (Z.pos (P_of_succ_nat 2463%nat))))
@@ -461,15 +489,12 @@ Definition step  (net : network )  : global_state  -> global_state :=
         Continue
           ( {[ {[ {[{[ global1 with g_vmstate:=InstructionContinue nv  ]} with g_cctx:=cctx  ]} with g_current:=n_state  ]} with g_stack:=(
           (Build_call_frame state v c (CreateAddress addr) (g_killed global1)) :: (g_stack global1))  ]})
-        | ContractFail _ =>
-        match ((g_stack  global1)) with | [] =>
-          Finished
-            {|f_state:=orig;f_killed:=[];f_gas:=((Z.pred
-                                                    (Z.pos
-                                                       (P_of_succ_nat 0%nat))));f_refund:=(
-            (Z.pred (Z.pos (P_of_succ_nat 0%nat))));f_logs := [] |}
-          | (Build_call_frame oldstate v c _ old_killed) :: rest =>
-          Continue (restore_failed_call global1 oldstate v c old_killed rest)
+        | ContractFail reasons =>
+        match g_stack global1 with
+        | [] => fail_transaction orig reasons
+        | (Build_call_frame oldstate caller caller_c _ old_killed) :: rest =>
+          if root_creation_frame global1 rest then fail_transaction orig reasons
+          else Continue (restore_failed_call global1 oldstate caller caller_c old_killed rest)
         end | ContractSuicide dst =>
         let n_dst := {[ (state dst) with block_account_balance := word256Add
                                                                     (block_account_balance  (
@@ -485,13 +510,13 @@ Definition step  (net : network )  : global_state  -> global_state :=
       let killed :=(cctx_this  c) :: (g_killed global1) in
       match ((g_stack  global1)) with | [] =>
         Finished
-          ({|f_state := state;f_killed := killed;f_refund :=(vctx_refund  v);f_gas :=(vctx_gas  v);f_logs :=(vctx_logs  v) |})
+          ({| f_outcome := ExecutionSuccess []; f_state := state;f_killed := killed;f_refund :=(vctx_refund  v);f_gas :=(vctx_gas  v);f_logs :=(vctx_logs  v) |})
         | (Build_call_frame _ nv nc is_new _) :: rest =>
         let n_state := match ( is_new) with | CreateAddress new_addr =>
                          create_account state new_addr [] | _ => state end in
       if beq_nat (List.length rest) ( 0%nat) && (g_create  global1) then
         Finished
-          {|f_state:=n_state;f_killed:=killed;f_gas:=(vctx_gas v);f_refund:=(vctx_refund v);f_logs :=(vctx_logs  v) |}
+          {| f_outcome := ExecutionSuccess []; f_state :=n_state;f_killed:=killed;f_gas:=(vctx_gas v);f_refund:=(vctx_refund v);f_logs :=(vctx_logs  v) |}
       else
         let acc := n_state (cctx_this  nc) in
         let nv := {[ nv with vctx_stack :=(word256FromNumeral 1%nat) ::
@@ -504,7 +529,7 @@ Definition step  (net : network )  : global_state  -> global_state :=
         let n_state := update_return state (cctx_this  c) v in
       match ((g_stack  global1)) with | [] =>
         Finished
-          {|f_state := n_state;f_killed :=(g_killed  global1);f_refund :=(vctx_refund  v);f_gas :=(vctx_gas  v);f_logs :=(vctx_logs  v) |}
+          {| f_outcome := ExecutionSuccess bytes; f_state := n_state;f_killed :=(g_killed  global1);f_refund :=(vctx_refund  v);f_gas :=(vctx_gas  v);f_logs :=(vctx_logs  v) |}
         | (Build_call_frame _ nv c (ReturnTo mem_start mem_size) _) :: rest =>
         let acc := n_state (cctx_this  c) in
       let nv := {[ {[ nv with vctx_memory := put_return_values
@@ -515,41 +540,30 @@ Definition step  (net : network )  : global_state  -> global_state :=
       Continue
         ( {[ {[ {[{[ global1 with g_vmstate:=InstructionContinue nv  ]} with g_cctx:=c  ]} with g_current:=n_state  ]} with g_stack:=rest  ]})
         | (Build_call_frame old_state nv c (CreateAddress new_addr) old_killed) :: rest =>
-        if (list_equal_by classical_boolean_equivalence bytes []) &&
-           (beq_nat (List.length rest) ( 0%nat) && (g_create  global1)) then
-          Finished
-            {|f_state:=n_state;f_killed:=(g_killed global1);f_gas:=(vctx_gas v);f_refund:=(vctx_refund v);f_logs :=(vctx_logs  v) |}
-        else
-          if int_ltb (vctx_gas  v)
-               ((Z.pred
-                   (Z.pos
-                      (P_of_succ_nat
-                         (Coq.Init.Peano.mult ( 200%nat) (List.length bytes))))))
-             &&
-             int_lteb homestead_block
-               ((two_compl_value 255 (block_number (vctx_block  v)))) then
-            Continue (restore_failed_call global1 old_state nv c old_killed rest)
-          else match (
-            if int_ltb (vctx_gas  v)
-                 ((Z.pred
-                     (Z.pos
-                        (P_of_succ_nat
-                           (Coq.Init.Peano.mult ( 200%nat)
-                              (List.length bytes)))))) then
-              (n_state, v,(word256FromNumeral 0%nat)) else
-              (create_account n_state new_addr bytes, {[ v with vctx_gas := 
-              Coq.ZArith.BinInt.Z.sub (vctx_gas  v)
-                ((Z.pred
-                    (Z.pos
-                       (P_of_succ_nat
-                          (Coq.Init.Peano.mult ( 200%nat) (List.length bytes))))))  ]},
-              address_to_w256 new_addr)) with (n_state,  v,  ret1) =>
-            let acc := n_state (cctx_this  c) in
-          let nv := {[ nv with vctx_stack := ret1 :: (vctx_stack nv)  ]} in
-          let nv := vctx_update_from_world nv acc n_state v in
-          Continue
-            ( {[ {[ {[{[ global1 with g_vmstate:=InstructionContinue nv  ]} with g_cctx:=c  ]} with g_current:=n_state  ]} with g_stack:=rest  ]})
-          end | _ => Unimplemented (* should be impossible *) end end | a =>
+          let deposit_cost := (200 * Z.of_nat (List.length bytes))%Z in
+          let insufficient := Z.ltb (vctx_gas v) deposit_cost in
+          if andb insufficient (negb (before_homestead net)) then
+            if root_creation_frame global1 rest then fail_transaction orig [OutOfGas]
+            else Continue (restore_failed_call global1 old_state nv c old_killed rest)
+          else
+            (* Frontier keeps the created account with empty code if the
+               deposit cannot be paid; Homestead takes the failure path above. *)
+            let deployed := if insufficient then [] else bytes in
+            let n_state := create_account n_state new_addr deployed in
+            let v := if insufficient then v else
+              {[ v with vctx_gas := (vctx_gas v - deposit_cost)%Z ]} in
+            if root_creation_frame global1 rest then
+              Finished {| f_outcome := ExecutionSuccess bytes; f_state := n_state;
+                f_killed := g_killed global1; f_gas := vctx_gas v;
+                f_refund := vctx_refund v; f_logs := vctx_logs v |}
+            else
+              let acc := n_state (cctx_this c) in
+              let nv := {[ nv with vctx_stack := address_to_w256 new_addr :: vctx_stack nv ]} in
+              let nv := vctx_update_from_world nv acc n_state v in
+              Continue
+                ({[ {[ {[ {[ global1 with g_vmstate := InstructionContinue nv ]}
+                    with g_cctx := c ]} with g_current := n_state ]} with g_stack := rest ]})
+         | _ => Unimplemented (* should be impossible *) end end | a =>
       Continue
         ({[ global1 with g_vmstate := next_state
                                         (fun ( _ : instruction_result ) => tt)
@@ -569,47 +583,52 @@ Definition calc_igas  (tr : transaction ) (block : block_info )  : Z :=
   | Some _ => igas
   end.
 
-Definition nothing_happens  (state : word160  -> block_account ) (tr : transaction )  : tr_result :=  {|f_state:=(sub_balance state(tr_from  tr) ( word256Mult(tr_gas_price tr)(tr_gas_limit  tr)));f_killed:=[];f_logs := [];f_gas:=(uint(tr_gas_limit  tr));f_refund:=((Z.pred (Z.pos (P_of_succ_nat 0%nat)))) |}.
-
-Definition start_transaction  (tr : transaction ) (state : word160  -> block_account ) (block : block_info )  : global_state := 
-  let s_acc := state(tr_from  tr) in
-  let gas_value := Coq.Init.Peano.mult (word256ToNatural(tr_gas_price  tr)) (word256ToNatural(tr_gas_limit  tr)) in
+(* [tr_from] is an authenticated sender supplied by the transaction decoder.
+   Signature recovery and block-wide admission are outside this legacy model. *)
+Definition start_transaction (tr : transaction) (state : world_state)
+    (block : block_info) : global_state :=
+  let sender := tr_from tr in
+  let s_acc := state sender in
+  let gas_value_nat := (word256ToNatural (tr_gas_price tr) *
+                        word256ToNatural (tr_gas_limit tr))%nat in
   let igas := calc_igas tr block in
-  (* does not work because gas can overflow ... *)
-  let nothing := Finished (nothing_happens state tr) in
-  if unsafe_structural_inequality(tr_nonce  tr)(block_account_nonce  s_acc) then nothing else
-  if nat_ltb (word256ToNatural(block_account_balance  s_acc)) (Coq.Init.Peano.plus (word256ToNatural(tr_value  tr)) gas_value) then nothing else
-  let gas_value := word256Mult(tr_gas_price  tr)(tr_gas_limit  tr) in
-  if nat_ltb (word256ToNatural(block_gaslimit  block)) (word256ToNatural(tr_gas_limit  tr)) then nothing else
-  if nat_ltb (word256ToNatural(tr_gas_limit  tr)) (Z.abs_nat igas) then nothing else
-  match ((tr_to  tr)) with 
-  | None =>
-    if (list_equal_by classical_boolean_equivalence(tr_data  tr) []) && (classical_boolean_equivalence(tr_gas_limit  tr)(word256FromNumeral 0%nat) && classical_boolean_equivalence(tr_gas_price  tr)(word256FromNumeral 0%nat)) then nothing else
-    if (list_equal_by classical_boolean_equivalence(tr_data  tr) []) && classical_boolean_equivalence(tr_gas_price  tr)(word256FromNumeral 0%nat) then Finished {|f_state:=(update_nonce state(tr_from  tr));f_killed:=[];f_gas:=((Z.pred (Z.pos (P_of_succ_nat 0%nat))));f_refund:=((Z.pred (Z.pos (P_of_succ_nat 0%nat))));f_logs := [] |} else
-    (* This should be creation... perhaps make a bogus state *)
-    let s_acc := {[ s_acc with block_account_balance := word256Minus(block_account_balance  s_acc) gas_value  ]} in
-    let n_state := update_world state(tr_from  tr) s_acc in
-    if (list_equal_by classical_boolean_equivalence(tr_data  tr) []) then
-      Finished {|f_state:=(update_nonce n_state(tr_from  tr));f_killed:=[];f_gas:= (Coq.ZArith.BinInt.Z.sub ((two_compl_value 255(tr_gas_limit  tr))) igas);f_refund:=((Z.pred (Z.pos (P_of_succ_nat 0%nat))));f_logs:=[] |} else
-    let v := create_env s_acc n_state(word256FromNumeral 0%nat) []
-        ((two_compl_value 255 ( word256Minus(tr_gas_limit tr) (word256FromInteger igas))))(tr_from  tr)(tr_from  tr)(tr_gas_price  tr) block in
-    let c := build_cctx0 s_acc in
-    let args := {|createarg_value :=(tr_value  tr);createarg_code :=(tr_data  tr) |} in
-    let act := ContractCreate args in
-    Continue ({|g_create := true;g_orig := n_state;g_stack := [];g_current := n_state;g_cctx := c;g_vmstate := (InstructionToEnvironment act v None);g_killed := [] |})
-  | Some addr =>
-    let s_acc := {[ {[ s_acc with block_account_balance := word256Minus(block_account_balance  s_acc) gas_value  ]} with block_account_nonce := word256Add(block_account_nonce  s_acc)(word256FromNumeral 1%nat)  ]} in
-    let state2 := update_world state(tr_from  tr) s_acc in
-    if nat_ltb (word256ToNatural(block_account_balance  s_acc)) (word256ToNatural(tr_value  tr)) then nothing else
-    let s_acc := {[ s_acc with block_account_balance := word256Minus(block_account_balance  s_acc)(tr_value  tr)  ]} in
-    let n_state := update_world state(tr_from  tr) s_acc in
-    let acc := n_state addr in
-    let acc := {[ acc with block_account_balance := word256Add(block_account_balance  acc)(tr_value  tr)  ]} in
-    let n_state := update_world n_state addr acc in
-    let v := create_env acc n_state(tr_value  tr)(tr_data  tr) ( Coq.ZArith.BinInt.Z.sub(uint(tr_gas_limit  tr)) igas)(tr_from  tr)(tr_from  tr)(tr_gas_price  tr) block in
-    let c := build_cctx0 acc in
-    Continue ({|g_create := false;g_orig := state2;g_stack := [];g_current := n_state;g_cctx := c;g_vmstate := (InstructionContinue v);g_killed := [] |})
-end.
+  if unsafe_structural_inequality (tr_nonce tr) (block_account_nonce s_acc) then
+    Rejected NonceMismatch state
+  else if nat_ltb (word256ToNatural (block_account_balance s_acc))
+      (word256ToNatural (tr_value tr) + gas_value_nat)%nat then
+    Rejected InsufficientFunds state
+  else if nat_ltb (word256ToNatural (block_gaslimit block))
+      (word256ToNatural (tr_gas_limit tr)) then
+    Rejected BlockGasLimitExceeded state
+  else if nat_ltb (word256ToNatural (tr_gas_limit tr)) (Z.abs_nat igas) then
+    Rejected IntrinsicGasTooLow state
+  else
+    let gas_value := word256Mult (tr_gas_price tr) (tr_gas_limit tr) in
+    let paid := sub_balance state sender gas_value in
+    let checkpoint := update_nonce paid sender in
+    let gas := (uint (tr_gas_limit tr) - igas)%Z in
+    match tr_to tr with
+    | None =>
+      (* The synthetic CREATE computes the address from the original nonce
+         and increments it. Its rollback checkpoint already consumes that nonce.
+         Empty initcode follows the same path and transfers the endowment. *)
+      let v := create_env (paid sender) paid (word256FromNumeral 0%nat) []
+                 gas sender sender (tr_gas_price tr) block in
+      let c := {| cctx_this := sender; cctx_program := empty_program;
+                  cctx_hash_filter := fun _ => true |} in
+      let args := {| createarg_value := tr_value tr; createarg_code := tr_data tr |} in
+      Continue {| g_create := true; g_orig := checkpoint; g_stack := [];
+                  g_current := paid; g_cctx := c; g_killed := [];
+                  g_vmstate := InstructionToEnvironment (ContractCreate args) v None |}
+    | Some addr =>
+      let current := transfer_balance checkpoint sender addr (tr_value tr) in
+      let acc := current addr in
+      let v := create_env acc current (tr_value tr) (tr_data tr) gas
+                 sender sender (tr_gas_price tr) block in
+      Continue {| g_create := false; g_orig := checkpoint; g_stack := [];
+                  g_current := current; g_cctx := build_cctx0 acc; g_killed := [];
+                  g_vmstate := InstructionContinue v |}
+    end.
 
 Program Fixpoint kill_accounts  (state : address  -> block_account ) (killed : list (word160 ))  : address  -> block_account :=  match ( killed) with 
   | [] => state
@@ -629,3 +648,17 @@ Definition end_transaction  (f : tr_result ) (tr : transaction ) (block : block_
   add_balance state(block_coinbase  block) ( word256Minus (word256Mult(tr_gas_limit tr)(tr_gas_price  tr)) refund_sum).
 
 
+
+(* Only completed executions enter fee settlement. Rejection returns the exact
+   original state and its reason; incomplete/unsupported runs have no result. *)
+Inductive transaction_result : Type :=
+| TransactionRejected (reason : rejection_reason) (unchanged : world_state)
+| TransactionExecuted (outcome : execution_outcome) (settled : world_state).
+
+Definition settle_transaction (tr : transaction) (block : block_info)
+    (result : global_state) : option transaction_result :=
+  match result with
+  | Rejected why state => Some (TransactionRejected why state)
+  | Finished f => Some (TransactionExecuted (f_outcome f) (end_transaction f tr block))
+  | Continue _ | Unimplemented => None
+  end.

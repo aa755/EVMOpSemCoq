@@ -1,6 +1,6 @@
 self-contained EVM operational semantics in Coq, generated from [Yoichi's EVM semantics](https://github.com/pirapira/eth-isabelle) and [Lem](https://github.com/rems-project/lem)
 
-the `step` function in block.v is the top-level eval function. `step` does not fully evaluate a transaction: it only evaluates it to the next call. however, repeating `step` will finish the evaluation.
+The `step` function in `block.v` advances one whole-machine transition: an instruction or a call/return boundary. Repeated steps execute a transaction; `Continue` is not a terminal outcome.
 
 tested on 25 Sept 2024, 11am EST:
 
@@ -79,3 +79,61 @@ normalizing large well-founded proof terms during evaluation. Its fuel is the
 input natural number. `boolListFromNatural_aux_fuel` proves independence of any
 sufficient bound, and `boolListFromNatural_equation` proves the original halving
 recurrence without a truncation assumption. These are closed proofs.
+
+### Transaction outcomes
+
+`start_transaction` now returns `Rejected reason original_state` for nonce,
+funding, block gas-limit, or intrinsic-gas failure. Rejections are terminal and
+never enter fee settlement. The old `nothing_happens` pseudo-execution is removed.
+The existing transaction input represents an already authenticated sender;
+signature decoding and block-wide validation remain outside this interface.
+
+Completed executions carry `tr_result.f_outcome`, either
+`ExecutionSuccess output` or `ExecutionFailure reasons`. Nested failure returns
+zero to the caller and does not automatically fail the transaction. Top-level
+failure restores the accepted checkpoint (including the prepaid fee and consumed
+nonce), clears reverted substate, and consumes the remaining execution gas.
+
+`settle_transaction tr block result` preserves the distinction through settlement:
+
+- `Some (TransactionRejected reason state)` preserves the original state exactly.
+- `Some (TransactionExecuted outcome state)` contains the outcome and the state
+  after `end_transaction` applies refunds, destruction, and miner payment.
+- `None` means execution is still running or encountered `Unimplemented`.
+
+Root CREATE no longer resumes its synthetic caller after initcode termination.
+Code-deposit failure is exceptional from Homestead onward; Frontier retains its
+empty-code behavior. Successful root creation deposits code and terminates.
+Empty initcode follows CREATE too, so the endowment is not skipped. Root failure
+preserves the sender nonce increment. The selected `network` controls the
+code-deposit rule; callers should supply block data consistent with that network.
+
+API changes: users constructing `global.g_stack` must use `call_frame`, users
+constructing `tr_result` must supply `f_outcome`, and exhaustive matches on
+`global_state` must handle `Rejected`. Existing `end_transaction` remains the
+low-level settlement function for an executed `tr_result`; callers processing
+arbitrary startup/execution results should use `settle_transaction`.
+
+`tests/Transactions.v` covers all four rejection causes, output and failure
+propagation, root CREATE and code deposit, and fee/nonce settlement. In the
+numerical settlement test, a balance of 100000 pays a fee of 30000: the sender
+ends at 70000 with nonce 1, and the miner's balance increases by 30000.
+
+### Reproducible verification
+
+From this repository, in the intended switch environment:
+
+```sh
+opam exec --switch=evmni -- python3 scripts/check.py
+```
+
+Or from the parent project: `./scripts/in-switch ./EVMOpSem/scripts/check.py`.
+The script builds both theories and tests, rejects active DAEMON/admitted holes,
+checks the transitive operational assumptions against the two classical axioms
+listed above, and runs `rocqchk` on every regression module and its dependencies.
+Reports are written under `_build/`.
+
+These changes repair the audited legacy paths; they are not a complete Ethereum
+conformance proof or the requested non-interference proof. EIP-7702 is deferred,
+precompiles are outside this task, and no REVERT opcode is added to the early-fork
+model. `Unimplemented` remains explicit rather than being counted as success.
