@@ -248,14 +248,36 @@ Definition inst_to_byte  (inst1 : inst )  : word8 :=  match ( inst1) with
 end.
 (* [?]: removed value specification. *)
 
-Program Fixpoint fix_push  (lst : list (inst ))  : list (inst ):=  match ( lst) with 
- | [] => []
- | Stack( PUSH_N lst) :: tl => Stack (PUSH_N (List.map inst_to_byte (take (List.length lst) tl))) :: fix_push tl
- | a :: tl => a :: fix_push tl
-end.
-(* [?]: removed value specification. *)
+(* Keep one entry per original byte, but distinguish PUSH data from executable
+   instructions. Unknown retains the exact payload byte for CODECOPY while
+   preventing jump/jumpi from recognizing an embedded 0x5b as JUMPDEST.
+   Padding belongs to the PUSH argument only, not to the program's byte map. *)
+Definition push_immediate (width : nat) (bytes : list word8) : list word8 :=
+  List.firstn width (bytes ++ List.repeat (word8FromNumeral 0%nat) width).
 
-Definition bytelist_to_instlist  (lst : list (word8 ))  : list (inst ):=  fix_push (List.map byte_to_inst lst).
+Fixpoint decode_bytes (pending : nat) (bytes : list word8) : list inst :=
+  match bytes with
+  | [] => []
+  | b :: rest =>
+    match pending with
+    | S n => Unknown b :: decode_bytes n rest
+    | O =>
+      match byte_to_inst b with
+      | Stack (PUSH_N zeros) =>
+        let width := List.length zeros in
+        Stack (PUSH_N (push_immediate width rest)) :: decode_bytes width rest
+      | i => i :: decode_bytes O rest
+      end
+    end
+  end.
+
+(* Compatibility helper for clients of the old instruction-list decoder.
+   The bytecode entry point below reads original bytes directly. *)
+Definition fix_push (lst : list inst) : list inst :=
+  decode_bytes O (List.map inst_to_byte lst).
+
+Definition bytelist_to_instlist (bytes : list word8) : list inst :=
+  decode_bytes O bytes.
 
 Inductive stack_hint : Type := 
  | NoHint: stack_hint 
