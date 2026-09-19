@@ -25,3 +25,18 @@ Resolving deltas: 100% (22/22), done.
 coq@5fb8ffb85238:~$ cd EVMOpSemCoq/
 coq@5fb8ffb85238:~/EVMOpSemCoq$ dune build # succeeds, but after too many warnings
 ```
+
+## Local repair branch
+
+The starting source snapshot was copied from
+`~/fv-workspace/workspace/monad/monadproofs/EVMOpSem` on 2026-09-18.
+The original workspace is not modified. This branch keeps the public repository
+history and builds independently with Rocq 9.0.1 and its Stdlib.
+
+From the parent project directory, run:
+
+```sh
+./scripts/in-switch dune build --root EVMOpSem
+```
+
+The named opam switch is `evmni`; it is not the default switch.

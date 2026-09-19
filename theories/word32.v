@@ -65,7 +65,7 @@ Definition size32   : Z :=  Coq.ZArith.Zpower.Zpower_nat((Z.pred (Z.pos (P_of_su
 Definition word32ToInteger  (w : word32 )  : Z :=  integerFromBitSeq (w32_to_bs w).
 (* [?]: removed value specification. *)
 
-Definition word32ToNatural  (w : word32 )  : nat :=  Z.abs_nat ( Coq.ZArith.Zdiv.Zmod(word32ToInteger w) size32).
+Definition word32ToNatural  (w : word32 )  : nat :=  Z.abs_nat ( Z.modulo(word32ToInteger w) size32).
 (* [?]: removed value specification. *)
 
 Definition word32FromInteger  (i : Z )  : word32 :=  bs_to_w32 (bitSeqFromInteger (Some( 32%nat)) i).

@@ -65,7 +65,7 @@ Definition size64   : Z :=  Coq.ZArith.Zpower.Zpower_nat((Z.pred (Z.pos (P_of_su
 Definition word64ToInteger  (w : word64 )  : Z :=  integerFromBitSeq (w64_to_bs w).
 (* [?]: removed value specification. *)
 
-Definition word64ToNatural  (w : word64 )  : nat :=  Z.abs_nat ( Coq.ZArith.Zdiv.Zmod(word64ToInteger w) size64).
+Definition word64ToNatural  (w : word64 )  : nat :=  Z.abs_nat ( Z.modulo(word64ToInteger w) size64).
 (* [?]: removed value specification. *)
 
 Definition word64FromInteger  (i : Z )  : word64 :=  bs_to_w64 (bitSeqFromInteger (Some( 64%nat)) i).

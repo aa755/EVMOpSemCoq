@@ -58,13 +58,13 @@ Definition word4NatOp  (binop : bitSequence  -> nat  -> bitSequence ) (w1 : word
 Definition word4UnaryOp  (op : bitSequence  -> bitSequence ) (w : word4 )  : word4 :=  bs_to_w4 (op (w4_to_bs w)).
 (* [?]: removed value specification. *)
 
-Definition word4ToNat  (w : word4 )  : nat :=  Z.abs_nat ( Coq.ZArith.Zdiv.Zmod( (integerFromBitSeq (w4_to_bs w)))((Z.pred (Z.pos (P_of_succ_nat 16%nat))))).
+Definition word4ToNat  (w : word4 )  : nat :=  Z.abs_nat ( Z.modulo( (integerFromBitSeq (w4_to_bs w)))((Z.pred (Z.pos (P_of_succ_nat 16%nat))))).
 (* [?]: removed value specification. *)
 
 Definition word4ToInt  (w : word4 )  : Z :=   (integerFromBitSeq (w4_to_bs w)).
 (* [?]: removed value specification. *)
 
-Definition word4ToUInt  (w : word4 )  : Z :=  Coq.ZArith.Zdiv.Zmod (word4ToInt w)((Z.pred (Z.pos (P_of_succ_nat 16%nat)))).
+Definition word4ToUInt  (w : word4 )  : Z :=  Z.modulo (word4ToInt w)((Z.pred (Z.pos (P_of_succ_nat 16%nat)))).
 (* [?]: removed value specification. *)
 
 Definition word4FromInteger  (i : Z )  : word4 :=  bs_to_w4 (bitSeqFromInteger (Some( 4%nat)) i).

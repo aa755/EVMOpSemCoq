@@ -71,7 +71,7 @@ Definition size256   : Z :=  Coq.ZArith.Zpower.Zpower_nat((Z.pred (Z.pos (P_of_s
 Definition word256ToInteger  (w : (Bvector  256) )  : Z :=  integerFromBitSeq ((fun (w : (Bvector  256) ) => bitSeqFromInteger (Some 256%nat) ((two_compl_value 255 w))) w). *)
 (* [?]: removed value specification. *)
 
-Definition word256ToNatural  (w : (Bvector  256) )  : nat :=  Z.abs_nat ( Coq.ZArith.Zdiv.Zmod((two_compl_value 255 w)) size256).
+Definition word256ToNatural  (w : (Bvector  256) )  : nat :=  Z.abs_nat ( Z.modulo((two_compl_value 255 w)) size256).
 (* [?]: removed value specification. *)
 
 Definition word256FromInteger  (i : Z )  : (Bvector  256) :=  (fun (w : bitSequence ) => Z_to_two_compl 255 (integerFromBitSeq w)) (bitSeqFromInteger (Some( 256%nat)) i).

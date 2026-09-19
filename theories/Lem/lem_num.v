@@ -570,7 +570,7 @@ Instance x101_NumDivision : NumDivision Z := {
 
 
 Instance x100_NumRemainder : NumRemainder Z := { 
-   numRemainder  :=  Coq.ZArith.Zdiv.Zmod
+   numRemainder  :=  Z.modulo
 }.
 
 (* [?]: removed value specification. *)
@@ -704,7 +704,7 @@ Instance x85_NumDivision : NumDivision Z := {
 
 
 Instance x84_NumRemainder : NumRemainder Z := { 
-   numRemainder  :=  Coq.ZArith.Zdiv.Zmod
+   numRemainder  :=  Z.modulo
 }.
 
 (* [?]: removed value specification. *)
@@ -838,7 +838,7 @@ Instance x69_NumDivision : NumDivision Z := {
 
 
 Instance x68_NumRemainder : NumRemainder Z := { 
-   numRemainder  :=  Coq.ZArith.Zdiv.Zmod
+   numRemainder  :=  Z.modulo
 }.
 
 (* [?]: removed value specification. *)
@@ -969,7 +969,7 @@ Instance x53_NumDivision : NumDivision Z := {
 
 
 Instance x52_NumRemainder : NumRemainder Z := { 
-   numRemainder  :=  Coq.ZArith.Zdiv.Zmod
+   numRemainder  :=  Z.modulo
 }.
 
 (* [?]: removed value specification. *)

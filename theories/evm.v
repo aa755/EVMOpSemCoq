@@ -107,7 +107,7 @@ Definition log256floor  (x : Z )  : Z :=  Z.div (Z.log2 (x :  Z ) :  Z ) ((Z.pre
 Program Fixpoint word_exp  (i : Z ) (n : nat )  : Z := 
   match ( n) with 
   | 0%nat =>(Z.pred (Z.pos (P_of_succ_nat 1%nat)))
-  |S (n) => Coq.ZArith.Zdiv.Zmod ( Coq.ZArith.BinInt.Z.mul(word_exp i n) i) ( Coq.ZArith.Zpower.Zpower_nat((Z.pred (Z.pos (P_of_succ_nat 2%nat))))( 256%nat))
+  |S (n) => Z.modulo ( Coq.ZArith.BinInt.Z.mul(word_exp i n) i) ( Coq.ZArith.Zpower.Zpower_nat((Z.pred (Z.pos (P_of_succ_nat 2%nat))))( 256%nat))
   end.
 
 (* In EVM, the memory contains one byte for each machine word (offset). *)
@@ -1689,15 +1689,15 @@ Definition instruction_sem  (v : variable_ctx ) (c : constant_ctx ) (inst1 : ins
                          let n := sintFromW256 n in
                          if int_ltb divisor((Z.pred (Z.pos (P_of_succ_nat 0%nat)))) then
                            (if int_ltb n((Z.pred (Z.pos (P_of_succ_nat 0%nat)))) then
-                              word256FromInteger ( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) ( Coq.ZArith.Zdiv.Zmod( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) n) ( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) divisor)))
+                              word256FromInteger ( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) ( Z.modulo( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) n) ( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) divisor)))
                             else
-                              word256FromInteger ( Coq.ZArith.Zdiv.Zmod n ( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) divisor))
+                              word256FromInteger ( Z.modulo n ( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) divisor))
                            )
                          else
                            (if int_ltb n((Z.pred (Z.pos (P_of_succ_nat 0%nat)))) then
-                              word256FromInteger ( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) ( Coq.ZArith.Zdiv.Zmod( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) n) divisor))
+                              word256FromInteger ( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) ( Z.modulo( Coq.ZArith.BinInt.Z.mul((Coq.ZArith.BinInt.Z.sub Z0 ((Z.pred (Z.pos (P_of_succ_nat 1%nat)))))) n) divisor))
                             else
-                              word256FromInteger ( Coq.ZArith.Zdiv.Zmod n divisor))
+                              word256FromInteger ( Z.modulo n divisor))
                            )
   | Sarith SGT => stack_2_1_op v c
        (fun (elm0 : (Bvector  256) ) (elm1 : (Bvector  256) ) => if w256Greater elm0 elm1 then(word256FromNumeral 1%nat) else(word256FromNumeral 0%nat))
@@ -1710,14 +1710,14 @@ Definition instruction_sem  (v : variable_ctx ) (c : constant_ctx ) (inst1 : ins
        (fun (a : (Bvector  256) ) (divisor : (Bvector  256) ) => (if classical_boolean_equivalence divisor(word256FromNumeral 0%nat) then(word256FromNumeral 0%nat) else word256FromInteger ( Z.div(uint a) (uint divisor))))
   | Arith MOD => stack_2_1_op v c
        (fun (a : (Bvector  256) ) (divisor : (Bvector  256) ) => (if classical_boolean_equivalence divisor(word256FromNumeral 0%nat) then(word256FromNumeral 0%nat) else
-            word256FromInteger ( Coq.ZArith.Zdiv.Zmod(uint a) (uint divisor))
+            word256FromInteger ( Z.modulo(uint a) (uint divisor))
         ))
   | Arith ADDMOD => stack_3_1_op v c
        (fun (a : (Bvector  256) ) (b : (Bvector  256) ) (divisor : (Bvector  256) ) =>
-           (if classical_boolean_equivalence divisor(word256FromNumeral 0%nat) then(word256FromNumeral 0%nat) else word256FromInteger ( Coq.ZArith.Zdiv.Zmod( Coq.ZArith.BinInt.Z.add(uint a) (uint b)) (uint divisor))))
+           (if classical_boolean_equivalence divisor(word256FromNumeral 0%nat) then(word256FromNumeral 0%nat) else word256FromInteger ( Z.modulo( Coq.ZArith.BinInt.Z.add(uint a) (uint b)) (uint divisor))))
   | Arith MULMOD => stack_3_1_op v c
        (fun (a : (Bvector  256) ) (b : (Bvector  256) ) (divisor : (Bvector  256) ) =>
-           (if classical_boolean_equivalence divisor(word256FromNumeral 0%nat) then(word256FromNumeral 0%nat) else word256FromInteger ( Coq.ZArith.Zdiv.Zmod( Coq.ZArith.BinInt.Z.mul(uint a) (uint b)) (uint divisor))))
+           (if classical_boolean_equivalence divisor(word256FromNumeral 0%nat) then(word256FromNumeral 0%nat) else word256FromInteger ( Z.modulo( Coq.ZArith.BinInt.Z.mul(uint a) (uint b)) (uint divisor))))
   | Arith EXP => stack_2_1_op v c (fun (a : (Bvector  256) ) (exponent : (Bvector  256) ) => word256FromInteger (word_exp (uint a) (word256ToNatural exponent)))
   | Arith inst_LT => stack_2_1_op v c (fun (arg0 : (Bvector  256) ) (arg1 : (Bvector  256) ) => if word256UGT arg1 arg0 then(word256FromNumeral 1%nat) else(word256FromNumeral 0%nat))
   | Arith SHA3 => sha3 v c
@@ -1754,7 +1754,16 @@ Definition instruction_sem  (v : variable_ctx ) (c : constant_ctx ) (inst1 : ins
      if before_homestead net then instruction_failure_result v [ShouldNotHappen] else delegatecall net v c
   | Info GAS => stack_0_1_op v c ( word256Minus(gas v)(word256FromNumeral 2%nat))
   | Memory MSIZE => stack_0_1_op v c ( word256Mult(word256FromNumeral 32%nat) (word256FromInteger(vctx_memory_usage  v)))
-  end).
+   end).
+
+Check w256Less.
+Search Bvector Z.
+Definition min1 := (w256_of_bl (repeat true 256)).
+Definition zero := (w256_of_bl (repeat false 256)).
+Compute (two_compl_value 255 min1).
+Compute (two_compl_value 255 zero).
+
+
 (* [?]: removed value specification. *)
 
 Definition next_state  (stopper : instruction_result  -> unit ) (c : constant_ctx ) (net : network ) (pr : instruction_result )  : instruction_result := 

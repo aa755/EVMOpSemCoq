@@ -64,7 +64,7 @@ Definition word160ToInteger  (w : word160 )  : Z :=  integerFromBitSeq (w160_to_
 Definition size160   : Z :=  Coq.ZArith.Zpower.Zpower_nat((Z.pred (Z.pos (P_of_succ_nat 2%nat))))( 160%nat).
 (* [?]: removed value specification. *)
 
-Definition word160ToNatural  (w : word160 )  : nat :=  Z.abs_nat ( Coq.ZArith.Zdiv.Zmod(word160ToInteger w) size160).
+Definition word160ToNatural  (w : word160 )  : nat :=  Z.abs_nat ( Z.modulo(word160ToInteger w) size160).
 (* [?]: removed value specification. *)
 
 Definition word160FromInteger  (i : Z )  : word160 :=  bs_to_w160 (bitSeqFromInteger (Some( 160%nat)) i).
