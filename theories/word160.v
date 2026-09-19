@@ -34,7 +34,7 @@ Require Export Lem.lem_word.
 
 
 Inductive word160 : Type :=  W160:  bool  ->  list  bool  -> word160 .
-Definition word160_default: word160  := W160 bool_default DAEMON.
+Definition word160_default: word160  := W160 bool_default [].
 (* [?]: removed value specification. *)
 
 Definition bs_to_w160  (seq : bitSequence )  : word160 :=  match ( resizeBitSeq (Some( 160%nat)) seq) with 

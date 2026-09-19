@@ -35,7 +35,7 @@ Require Export Lem.lem_word.
 
 
 Inductive word32 : Type :=  W32:  bool  ->  list  bool  -> word32 .
-Definition word32_default: word32  := W32 bool_default DAEMON.
+Definition word32_default: word32  := W32 bool_default [].
 (* [?]: removed value specification. *)
 
 Definition bs_to_w32  (seq : bitSequence )  : word32 :=  match ( resizeBitSeq (Some( 32%nat)) seq) with 

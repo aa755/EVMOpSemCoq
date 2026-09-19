@@ -37,7 +37,7 @@ Inductive bitSequence : Type :=  BitSeq:
    option  nat    ->  (* length of the sequence, Nothing means infinite length *)
    bool  ->        (* sign of the word, used to fill up after concrete value is exhausted *)
    list  bool  -> bitSequence .
-Definition bitSequence_default: bitSequence  := BitSeq DAEMON bool_default DAEMON.
+Definition bitSequence_default: bitSequence  := BitSeq None bool_default [].
 (* [?]: removed value specification. *)
 
 (* [?]: removed top-level value definition. *)

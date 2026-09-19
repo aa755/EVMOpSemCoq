@@ -34,7 +34,7 @@ Require Export Lem.lem_word.
 
 
 Inductive word8 : Type :=  W8:  bool  ->  list  bool  -> word8 .
-Definition word8_default: word8  := W8 bool_default DAEMON.
+Definition word8_default: word8  := W8 bool_default [].
 (* [?]: removed value specification. *)
 
 Definition bs_to_w8  (seq : bitSequence )  : word8 :=  match ( resizeBitSeq (Some( 8%nat)) seq) with 

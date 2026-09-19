@@ -50,7 +50,7 @@ Definition byte0_default: byte0  := word8_default.
 Inductive tree : Type := 
  | Leaf:  list  byte0  -> tree 
  | Node:  list  tree  -> tree .
-Definition tree_default: tree  := Leaf DAEMON.
+Definition tree_default: tree  := Leaf [].
 (* [?]: removed value specification. *)
 
 Program Fixpoint BE_rev_prim  (limit : nat ) (n : nat )  : list (word8 ):=  match ( limit) with 

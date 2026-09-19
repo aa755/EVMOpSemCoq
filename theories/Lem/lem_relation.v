@@ -33,7 +33,7 @@ Require Export lem_num.
 Definition rel_pred  (a: Type) (b: Type) : Type :=  a ->  b ->  bool .
 Definition rel_pred_default {a: Type} {b: Type} : rel_pred a b := (fun (x151 :  a) => (fun (x152 :  b) => bool_default)).
 Definition rel_set  (a: Type) (b: Type) : Type :=  set  ((a * b) % type).
-Definition rel_set_default {a: Type} {b: Type} : rel_set a b := DAEMON.
+Definition rel_set_default {a: Type} {b: Type} : rel_set a b := [].
 
 (* Binary relations are usually represented as either
    sets of pairs (rel_set) or as curried functions (rel_pred). 
@@ -45,7 +45,7 @@ Definition rel_set_default {a: Type} {b: Type} : rel_set a b := DAEMON.
    let's implement relations as sets to get them working more quickly. *)
 
 Definition rel  (a: Type) (b: Type) : Type :=  rel_set  a  b.
-Definition rel_default {a: Type} {b: Type} : rel a b := DAEMON.
+Definition rel_default {a: Type} {b: Type} : rel a b := [].
 (* [?]: removed value specification. *)
 
 (* [?]: removed value specification. *)

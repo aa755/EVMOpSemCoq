@@ -40,3 +40,20 @@ From the parent project directory, run:
 ```
 
 The named opam switch is `evmni`; it is not the default switch.
+
+### Removing DAEMON
+
+The upstream commit `a0c09b8` already identified the arbitrary-inhabitant axiom
+as removable. The repair proves both halving termination obligations and gives
+concrete defaults to the generated datatypes. `sum_default` now takes an
+explicit inhabitant of its left summand; there is no total default for arbitrary
+uninhabited sums.
+
+`tests/Harness.v` checks both recursive functions and prints the transitive
+assumptions of the instruction/whole-machine/transaction entry points and word
+arithmetic. Word addition, integer conversion, and both recursions are closed;
+the operational entry points retain only `Classical_Prop.classic` and
+`Description.constructive_definite_description`. The generic Lem library still
+contains unrelated abstract set operations; these do not appear in that closure.
+Historical comments (including the deprecated, commented-out `evmfull.v`) are
+not active declarations.

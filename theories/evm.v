@@ -829,7 +829,7 @@ Notation "{[ r 'with' 'callenv_caller' := e ]}" := ({| callenv_caller := e; call
 Notation "{[ r 'with' 'callenv_timestamp' := e ]}" := ({| callenv_timestamp := e; callenv_gaslimit := callenv_gaslimit r; callenv_value := callenv_value r; callenv_data := callenv_data r; callenv_caller := callenv_caller r; callenv_blocknum := callenv_blocknum r; callenv_balance := callenv_balance r |}).
 Notation "{[ r 'with' 'callenv_blocknum' := e ]}" := ({| callenv_blocknum := e; callenv_gaslimit := callenv_gaslimit r; callenv_value := callenv_value r; callenv_data := callenv_data r; callenv_caller := callenv_caller r; callenv_timestamp := callenv_timestamp r; callenv_balance := callenv_balance r |}).
 Notation "{[ r 'with' 'callenv_balance' := e ]}" := ({| callenv_balance := e; callenv_gaslimit := callenv_gaslimit r; callenv_value := callenv_value r; callenv_data := callenv_data r; callenv_caller := callenv_caller r; callenv_timestamp := callenv_timestamp r; callenv_blocknum := callenv_blocknum r |}).
-Definition call_env_default: call_env  := {| callenv_gaslimit := w256_default; callenv_value := w256_default; callenv_data := DAEMON; callenv_caller := address_default; callenv_timestamp := w256_default; callenv_blocknum := w256_default; callenv_balance := (fun (x116 :  address ) => w256_default) |}.
+Definition call_env_default: call_env  := {| callenv_gaslimit := w256_default; callenv_value := w256_default; callenv_data := []; callenv_caller := address_default; callenv_timestamp := w256_default; callenv_blocknum := w256_default; callenv_balance := (fun (x116 :  address ) => w256_default) |}.
 
 (* After our contract calls accounts, the environment can make those accounts *)
 (* return into our contracts.  The return value is not under control of our current *)
@@ -842,7 +842,7 @@ Record return_result : Type := {
 }.
 Notation "{[ r 'with' 'return_data' := e ]}" := ({| return_data := e; return_balance := return_balance r |}).
 Notation "{[ r 'with' 'return_balance' := e ]}" := ({| return_balance := e; return_data := return_data r |}).
-Definition return_result_default: return_result  := {| return_data := DAEMON; return_balance := (fun (x115 :  address ) => w256_default) |}.
+Definition return_result_default: return_result  := {| return_data := []; return_balance := (fun (x115 :  address ) => w256_default) |}.
 
 (* Even our account's balance (and its storage) might have changed at this moment. *)
 (* @{typ return_result} type is also used when our contract returns, as we will see. *)
@@ -888,7 +888,7 @@ Notation "{[ r 'with' 'callarg_value' := e ]}" := ({| callarg_value := e; callar
 Notation "{[ r 'with' 'callarg_data' := e ]}" := ({| callarg_data := e; callarg_gas := callarg_gas r; callarg_code := callarg_code r; callarg_recipient := callarg_recipient r; callarg_value := callarg_value r; callarg_output_begin := callarg_output_begin r; callarg_output_size := callarg_output_size r |}).
 Notation "{[ r 'with' 'callarg_output_begin' := e ]}" := ({| callarg_output_begin := e; callarg_gas := callarg_gas r; callarg_code := callarg_code r; callarg_recipient := callarg_recipient r; callarg_value := callarg_value r; callarg_data := callarg_data r; callarg_output_size := callarg_output_size r |}).
 Notation "{[ r 'with' 'callarg_output_size' := e ]}" := ({| callarg_output_size := e; callarg_gas := callarg_gas r; callarg_code := callarg_code r; callarg_recipient := callarg_recipient r; callarg_value := callarg_value r; callarg_data := callarg_data r; callarg_output_begin := callarg_output_begin r |}).
-Definition call_arguments_default: call_arguments  := {| callarg_gas := w256_default; callarg_code := address_default; callarg_recipient := address_default; callarg_value := w256_default; callarg_data := DAEMON; callarg_output_begin := w256_default; callarg_output_size := w256_default |}.
+Definition call_arguments_default: call_arguments  := {| callarg_gas := w256_default; callarg_code := address_default; callarg_recipient := address_default; callarg_value := w256_default; callarg_data := []; callarg_output_begin := w256_default; callarg_output_size := w256_default |}.
 
 Record create_arguments : Type := {
   createarg_value : w256 ; (* The value sent to the account *)
@@ -896,7 +896,7 @@ Record create_arguments : Type := {
 }.
 Notation "{[ r 'with' 'createarg_value' := e ]}" := ({| createarg_value := e; createarg_code := createarg_code r |}).
 Notation "{[ r 'with' 'createarg_code' := e ]}" := ({| createarg_code := e; createarg_value := createarg_value r |}).
-Definition create_arguments_default: create_arguments  := {| createarg_value := w256_default; createarg_code := DAEMON |}.
+Definition create_arguments_default: create_arguments  := {| createarg_value := w256_default; createarg_code := [] |}.
 
 Inductive failure_reason : Type := 
 | OutOfGas: failure_reason 
@@ -926,7 +926,7 @@ Record program : Type := {
 }.
 Notation "{[ r 'with' 'program_content' := e ]}" := ({| program_content := e; program_length := program_length r |}).
 Notation "{[ r 'with' 'program_length' := e ]}" := ({| program_length := e; program_content := program_content r |}).
-Definition program_default: program  := {| program_content := (fun (x114 :  Z ) => DAEMON); program_length := Z_default |}.
+Definition program_default: program  := {| program_content := (fun (x114 :  Z ) => None); program_length := Z_default |}.
 (* [?]: removed value specification. *)
 
 Definition empty_program   : program :=  {|program_content := (fun ( _ : Z ) => None);program_length :=((Z.pred (Z.pos (P_of_succ_nat 0%nat))))
@@ -980,7 +980,7 @@ Record log_entry : Type := {
 Notation "{[ r 'with' 'log_addr' := e ]}" := ({| log_addr := e; log_topics := log_topics r; log_data := log_data r |}).
 Notation "{[ r 'with' 'log_topics' := e ]}" := ({| log_topics := e; log_addr := log_addr r; log_data := log_data r |}).
 Notation "{[ r 'with' 'log_data' := e ]}" := ({| log_data := e; log_addr := log_addr r; log_topics := log_topics r |}).
-Definition log_entry_default: log_entry  := {| log_addr := address_default; log_topics := DAEMON; log_data := DAEMON |}.
+Definition log_entry_default: log_entry  := {| log_addr := address_default; log_topics := []; log_data := [] |}.
 
 
 (* The variable context contains information that is relatively volatile. *)
@@ -1027,7 +1027,7 @@ Notation "{[ r 'with' 'vctx_touched_storage_index' := e ]}" := ({| vctx_touched_
 Notation "{[ r 'with' 'vctx_logs' := e ]}" := ({| vctx_logs := e; vctx_stack := vctx_stack r; vctx_memory := vctx_memory r; vctx_memory_usage := vctx_memory_usage r; vctx_storage := vctx_storage r; vctx_pc := vctx_pc r; vctx_balance := vctx_balance r; vctx_caller := vctx_caller r; vctx_value_sent := vctx_value_sent r; vctx_data_sent := vctx_data_sent r; vctx_storage_at_call := vctx_storage_at_call r; vctx_balance_at_call := vctx_balance_at_call r; vctx_origin := vctx_origin r; vctx_ext_program := vctx_ext_program r; vctx_block := vctx_block r; vctx_gas := vctx_gas r; vctx_account_existence := vctx_account_existence r; vctx_touched_storage_index := vctx_touched_storage_index r; vctx_refund := vctx_refund r; vctx_gasprice := vctx_gasprice r |}).
 Notation "{[ r 'with' 'vctx_refund' := e ]}" := ({| vctx_refund := e; vctx_stack := vctx_stack r; vctx_memory := vctx_memory r; vctx_memory_usage := vctx_memory_usage r; vctx_storage := vctx_storage r; vctx_pc := vctx_pc r; vctx_balance := vctx_balance r; vctx_caller := vctx_caller r; vctx_value_sent := vctx_value_sent r; vctx_data_sent := vctx_data_sent r; vctx_storage_at_call := vctx_storage_at_call r; vctx_balance_at_call := vctx_balance_at_call r; vctx_origin := vctx_origin r; vctx_ext_program := vctx_ext_program r; vctx_block := vctx_block r; vctx_gas := vctx_gas r; vctx_account_existence := vctx_account_existence r; vctx_touched_storage_index := vctx_touched_storage_index r; vctx_logs := vctx_logs r; vctx_gasprice := vctx_gasprice r |}).
 Notation "{[ r 'with' 'vctx_gasprice' := e ]}" := ({| vctx_gasprice := e; vctx_stack := vctx_stack r; vctx_memory := vctx_memory r; vctx_memory_usage := vctx_memory_usage r; vctx_storage := vctx_storage r; vctx_pc := vctx_pc r; vctx_balance := vctx_balance r; vctx_caller := vctx_caller r; vctx_value_sent := vctx_value_sent r; vctx_data_sent := vctx_data_sent r; vctx_storage_at_call := vctx_storage_at_call r; vctx_balance_at_call := vctx_balance_at_call r; vctx_origin := vctx_origin r; vctx_ext_program := vctx_ext_program r; vctx_block := vctx_block r; vctx_gas := vctx_gas r; vctx_account_existence := vctx_account_existence r; vctx_touched_storage_index := vctx_touched_storage_index r; vctx_logs := vctx_logs r; vctx_refund := vctx_refund r |}).
-Definition variable_ctx_default: variable_ctx  := {| vctx_stack := DAEMON; vctx_memory := memory_default; vctx_memory_usage := Z_default; vctx_storage := storage_default; vctx_pc := Z_default; vctx_balance := (fun (x109 :  address ) => w256_default); vctx_caller := address_default; vctx_value_sent := w256_default; vctx_data_sent := DAEMON; vctx_storage_at_call := storage_default; vctx_balance_at_call := (fun (x110 :  address ) => w256_default); vctx_origin := address_default; vctx_ext_program := (fun (x111 :  address ) => program_default); vctx_block := block_info_default; vctx_gas := Z_default; vctx_account_existence := (fun (x112 :  address ) => bool_default); vctx_touched_storage_index := DAEMON; vctx_logs := DAEMON; vctx_refund := Z_default; vctx_gasprice := w256_default |}.
+Definition variable_ctx_default: variable_ctx  := {| vctx_stack := []; vctx_memory := memory_default; vctx_memory_usage := Z_default; vctx_storage := storage_default; vctx_pc := Z_default; vctx_balance := (fun (x109 :  address ) => w256_default); vctx_caller := address_default; vctx_value_sent := w256_default; vctx_data_sent := []; vctx_storage_at_call := storage_default; vctx_balance_at_call := (fun (x110 :  address ) => w256_default); vctx_origin := address_default; vctx_ext_program := (fun (x111 :  address ) => program_default); vctx_block := block_info_default; vctx_gas := Z_default; vctx_account_existence := (fun (x112 :  address ) => bool_default); vctx_touched_storage_index := []; vctx_logs := []; vctx_refund := Z_default; vctx_gasprice := w256_default |}.
 
 (* The constant context contains information that is rather stable. *)
 Record constant_ctx : Type := {
@@ -1827,7 +1827,7 @@ Notation "{[ r 'with' 'account_code' := e ]}" := ({| account_code := e; account_
 Notation "{[ r 'with' 'account_balance' := e ]}" := ({| account_balance := e; account_address := account_address r; account_storage := account_storage r; account_code := account_code r; account_ongoing_calls := account_ongoing_calls r; account_killed := account_killed r |}).
 Notation "{[ r 'with' 'account_ongoing_calls' := e ]}" := ({| account_ongoing_calls := e; account_address := account_address r; account_storage := account_storage r; account_code := account_code r; account_balance := account_balance r; account_killed := account_killed r |}).
 Notation "{[ r 'with' 'account_killed' := e ]}" := ({| account_killed := e; account_address := account_address r; account_storage := account_storage r; account_code := account_code r; account_balance := account_balance r; account_ongoing_calls := account_ongoing_calls r |}).
-Definition account_state_default: account_state  := {| account_address := address_default; account_storage := storage_default; account_code := program_default; account_balance := w256_default; account_ongoing_calls := DAEMON; account_killed := bool_default |}.
+Definition account_state_default: account_state  := {| account_address := address_default; account_storage := storage_default; account_code := program_default; account_balance := w256_default; account_ongoing_calls := []; account_killed := bool_default |}.
 (* [?]: removed value specification. *)
 
 Definition build_cctx  (a : account_state )  : constant_ctx := 
@@ -1954,10 +1954,3 @@ Inductive build_vctx_returned: (account_state) -> (return_result) -> (variable_c
       |}).
 
 Print Assumptions instruction_sem.
-(*
-Axioms:
-Description.constructive_definite_description
-  : forall (A : Type) (P : A -> Prop), (exists ! x : A, P x) -> {x : A | P x}
-Classical_Prop.classic : forall P : Prop, P \/ ~ P
-coqharness.DAEMON : forall a : Type, a
-*)

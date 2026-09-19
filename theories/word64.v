@@ -35,7 +35,7 @@ Require Export Lem.lem_word.
 
 
 Inductive word64 : Type :=  W64:  bool  ->  list  bool  -> word64 .
-Definition word64_default: word64  := W64 bool_default DAEMON.
+Definition word64_default: word64  := W64 bool_default [].
 (* [?]: removed value specification. *)
 
 Definition bs_to_w64  (seq : bitSequence )  : word64 :=  match ( resizeBitSeq (Some( 64%nat)) seq) with 

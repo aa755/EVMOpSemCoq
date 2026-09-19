@@ -68,7 +68,7 @@ Local Open Scope nat_scope.
 
 (* Logic *)
 
-Axiom DAEMON: forall {a: Type}, a.
+(* Defaults below have concrete inhabitants; no arbitrary inhabitant axiom. *)
 
 Definition bool_of_Prop (P : Prop) : bool :=
    if excluded_middle_informative P then
@@ -225,7 +225,7 @@ Program Fixpoint gen_pow_aux
                    gen_pow_aux mul a' (mul b b) e''
    end.
   Obligation 1.
-    apply DAEMON. (* XXX: finish *)
+    exact (Nat.div_lt (S (S e')) 2 (ltac:(lia)) (ltac:(lia))).
   Defined.
 
 
@@ -619,13 +619,14 @@ Program Fixpoint bitSeqBinopAux
 
 Program Fixpoint boolListFromNatural
   (acc : list bool) (remainder : nat) {measure remainder} := 
-  if (nat_gtb remainder 0) then 
-   (boolListFromNatural ((decide ((Nat.modulo remainder 2) = 1)) :: acc) 
-      (Nat.div remainder 2))
-  else
-    List.rev acc.
+  match remainder with
+  | 0 => List.rev acc
+  | S rest =>
+      boolListFromNatural ((decide ((Nat.modulo remainder 2) = 1)) :: acc)
+        (Nat.div remainder 2)
+  end.
   Obligation 1.
-    apply DAEMON. (* XXX: todo *)
+    exact (Nat.div_lt (S rest) 2 (ltac:(lia)) (ltac:(lia))).
   Defined.
 
 (* Default values for incomplete pattern matching. *)
@@ -637,6 +638,7 @@ Definition list_default {elt: Type}: list elt := [].
 Definition set_default {elt: Type}: set elt := [].
 Definition fmap_default {key value: Type}: fmap key value := [].
 Definition string_default: string := ("" % string).
-Definition sum_default {left right: Type}: sum left right := inl (DAEMON (a:=left)).
+Definition sum_default {left right: Type} (default_left : left) : sum left right :=
+  inl default_left.
 Definition unit_default: unit := tt.
 Definition maybe_default {elt: Type}: option elt := None.

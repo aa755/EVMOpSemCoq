@@ -67,7 +67,7 @@ Notation "{[ r 'with' 'tr_gas_price' := e ]}" := ({| tr_gas_price := e; tr_from 
 Notation "{[ r 'with' 'tr_value' := e ]}" := ({| tr_value := e; tr_from := tr_from r; tr_to := tr_to r; tr_gas_limit := tr_gas_limit r; tr_gas_price := tr_gas_price r; tr_nonce := tr_nonce r; tr_data := tr_data r |}).
 Notation "{[ r 'with' 'tr_nonce' := e ]}" := ({| tr_nonce := e; tr_from := tr_from r; tr_to := tr_to r; tr_gas_limit := tr_gas_limit r; tr_gas_price := tr_gas_price r; tr_value := tr_value r; tr_data := tr_data r |}).
 Notation "{[ r 'with' 'tr_data' := e ]}" := ({| tr_data := e; tr_from := tr_from r; tr_to := tr_to r; tr_gas_limit := tr_gas_limit r; tr_gas_price := tr_gas_price r; tr_value := tr_value r; tr_nonce := tr_nonce r |}).
-Definition transaction_default: transaction  := {| tr_from := address_default; tr_to := DAEMON; tr_gas_limit := w256_default; tr_gas_price := w256_default; tr_value := w256_default; tr_nonce := w256_default; tr_data := DAEMON |}.
+Definition transaction_default: transaction  := {| tr_from := address_default; tr_to := None; tr_gas_limit := w256_default; tr_gas_price := w256_default; tr_value := w256_default; tr_nonce := w256_default; tr_data := [] |}.
 
 Record block_account : Type := {
   block_account_address : address ;
@@ -112,7 +112,7 @@ Notation "{[ r 'with' 'receipt_state' := e ]}" := ({| receipt_state := e; receip
 Notation "{[ r 'with' 'receipt_cumulative_gas' := e ]}" := ({| receipt_cumulative_gas := e; receipt_state := receipt_state r; receipt_bloom := receipt_bloom r; receipt_logs := receipt_logs r |}).
 Notation "{[ r 'with' 'receipt_bloom' := e ]}" := ({| receipt_bloom := e; receipt_state := receipt_state r; receipt_cumulative_gas := receipt_cumulative_gas r; receipt_logs := receipt_logs r |}).
 Notation "{[ r 'with' 'receipt_logs' := e ]}" := ({| receipt_logs := e; receipt_state := receipt_state r; receipt_cumulative_gas := receipt_cumulative_gas r; receipt_bloom := receipt_bloom r |}).
-Definition receipt_default: receipt  := {| receipt_state := world_state_default; receipt_cumulative_gas := w256_default; receipt_bloom := w256_default; receipt_logs := DAEMON |}.
+Definition receipt_default: receipt  := {| receipt_state := world_state_default; receipt_cumulative_gas := w256_default; receipt_bloom := w256_default; receipt_logs := [] |}.
 
 Definition start_env  (a : block_account ) (state : word160  -> block_account ) (args : call_arguments ) (caller : word160 ) (origin : word160 ) (gasprice : (Bvector  256) ) (block : block_info )  : variable_ctx := 
 {|vctx_stack := [];vctx_memory := empty_memory;vctx_memory_usage :=((Z.pred (Z.pos (P_of_succ_nat 0%nat))));vctx_storage :=(block_account_storage  a);vctx_pc :=((Z.pred (Z.pos (P_of_succ_nat 0%nat))));vctx_balance := (fun  (addr:address ) =>(block_account_balance  (state addr)));vctx_caller := caller;vctx_value_sent :=(callarg_value  args);vctx_data_sent :=(callarg_data  args);vctx_storage_at_call :=(block_account_storage  a);vctx_balance_at_call := (fun  (addr:address ) =>(block_account_balance  (state addr)));vctx_origin := origin;vctx_gasprice := gasprice;vctx_ext_program := (fun  (addr:address ) =>(block_account_code  (state addr)));vctx_block := block;vctx_gas := (uint(callarg_gas  args));vctx_account_existence := (fun  (addr:address ) =>(block_account_exists  (state addr)));vctx_touched_storage_index := [];vctx_logs := [];vctx_refund :=((Z.pred (Z.pos (P_of_succ_nat 0%nat))))
@@ -279,7 +279,7 @@ Notation "{[ r 'with' 'g_cctx' := e ]}" := ({| g_cctx := e; g_orig := g_orig r; 
 Notation "{[ r 'with' 'g_killed' := e ]}" := ({| g_killed := e; g_orig := g_orig r; g_stack := g_stack r; g_current := g_current r; g_cctx := g_cctx r; g_vmstate := g_vmstate r; g_create := g_create r |}).
 Notation "{[ r 'with' 'g_vmstate' := e ]}" := ({| g_vmstate := e; g_orig := g_orig r; g_stack := g_stack r; g_current := g_current r; g_cctx := g_cctx r; g_killed := g_killed r; g_create := g_create r |}).
 Notation "{[ r 'with' 'g_create' := e ]}" := ({| g_create := e; g_orig := g_orig r; g_stack := g_stack r; g_current := g_current r; g_cctx := g_cctx r; g_killed := g_killed r; g_vmstate := g_vmstate r |}).
-Definition global_default: global  := {| g_orig := world_state_default; g_stack := DAEMON; g_current := world_state_default; g_cctx := constant_ctx_default; g_killed := DAEMON; g_vmstate := instruction_result_default; g_create := bool_default |}.
+Definition global_default: global  := {| g_orig := world_state_default; g_stack := []; g_current := world_state_default; g_cctx := constant_ctx_default; g_killed := []; g_vmstate := instruction_result_default; g_create := bool_default |}.
 
 Record tr_result : Type := {
   f_state : world_state ;
@@ -293,7 +293,7 @@ Notation "{[ r 'with' 'f_killed' := e ]}" := ({| f_killed := e; f_state := f_sta
 Notation "{[ r 'with' 'f_gas' := e ]}" := ({| f_gas := e; f_state := f_state r; f_killed := f_killed r; f_refund := f_refund r; f_logs := f_logs r |}).
 Notation "{[ r 'with' 'f_refund' := e ]}" := ({| f_refund := e; f_state := f_state r; f_killed := f_killed r; f_gas := f_gas r; f_logs := f_logs r |}).
 Notation "{[ r 'with' 'f_logs' := e ]}" := ({| f_logs := e; f_state := f_state r; f_killed := f_killed r; f_gas := f_gas r; f_refund := f_refund r |}).
-Definition tr_result_default: tr_result  := {| f_state := world_state_default; f_killed := DAEMON; f_gas := Z_default; f_refund := Z_default; f_logs := DAEMON |}.
+Definition tr_result_default: tr_result  := {| f_state := world_state_default; f_killed := []; f_gas := Z_default; f_refund := Z_default; f_logs := [] |}.
 
 Inductive global_state : Type := 
  | Unimplemented: global_state 
@@ -306,7 +306,7 @@ Definition get_hint   : option ((Z *Z ) % type)  -> stack_hint :=
     match (x) with | Some (a, b) => ReturnTo a b | None => NoHint end.
 
 Definition opt : Type :=  (nat  ->  option  inst  ).
-Definition opt_default: opt  := (fun (x119 : nat ) => DAEMON).
+Definition opt_default: opt  := (fun (x119 : nat ) => None).
 
 Definition make_opt  (lst : list (byte0 ))  : nat  -> option (inst ) := 
   let bytes := bytelist_to_instlist lst in

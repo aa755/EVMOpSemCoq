@@ -34,7 +34,7 @@ Require Export Lem.lem_word.
 
 
 Inductive word4 : Type :=  W4:  bool  ->  list  bool  -> word4 .
-Definition word4_default: word4  := W4 bool_default DAEMON.
+Definition word4_default: word4  := W4 bool_default [].
 (* [?]: removed value specification. *)
 
 Definition bs_to_w4  (seq : bitSequence )  : word4 :=  match ( resizeBitSeq (Some( 4%nat)) seq) with 
