@@ -617,17 +617,58 @@ Program Fixpoint bitSeqBinopAux
     simpl. rewrite <- plus_n_Sm. auto.
   Defined.
 
-Program Fixpoint boolListFromNatural
-  (acc : list bool) (remainder : nat) {measure remainder} := 
+(* Explicit structural fuel avoids reducing well-founded proof terms during
+   word arithmetic. [remainder] itself is a sufficient bound, as proved below. *)
+Fixpoint boolListFromNatural_aux (fuel : nat) (acc : list bool) (remainder : nat)
+    : list bool :=
+  match remainder, fuel with
+  | 0, _ => List.rev acc
+  | _, 0 => List.rev acc
+  | S _, S fuel' =>
+      boolListFromNatural_aux fuel'
+        ((decide ((Nat.modulo remainder 2) = 1)) :: acc) (Nat.div remainder 2)
+  end.
+
+Lemma boolListFromNatural_aux_fuel fuel1 fuel2 acc remainder :
+  remainder <= fuel1 -> remainder <= fuel2 ->
+  boolListFromNatural_aux fuel1 acc remainder =
+  boolListFromNatural_aux fuel2 acc remainder.
+Proof.
+  revert fuel2 acc remainder.
+  induction fuel1 as [|fuel1 IH]; intros fuel2 acc remainder H1 H2.
+  { destruct remainder; [destruct fuel2; reflexivity | lia]. }
+  { destruct remainder as [|rest]; [destruct fuel2; reflexivity |].
+    destruct fuel2 as [|fuel2]; [lia |].
+    change (boolListFromNatural_aux fuel1
+      ((decide ((Nat.modulo (S rest) 2) = 1)) :: acc) (Nat.div (S rest) 2) =
+      boolListFromNatural_aux fuel2
+      ((decide ((Nat.modulo (S rest) 2) = 1)) :: acc) (Nat.div (S rest) 2)).
+    pose proof (Nat.div_lt (S rest) 2 (ltac:(lia)) (ltac:(lia))) as Hdiv.
+    apply IH; lia.
+  }
+Qed.
+
+Definition boolListFromNatural (acc : list bool) (remainder : nat) : list bool :=
+  boolListFromNatural_aux remainder acc remainder.
+
+(* The original recurrence, without an axiom or a fuel-truncation hypothesis. *)
+Lemma boolListFromNatural_equation acc remainder :
+  boolListFromNatural acc remainder =
   match remainder with
   | 0 => List.rev acc
-  | S rest =>
-      boolListFromNatural ((decide ((Nat.modulo remainder 2) = 1)) :: acc)
-        (Nat.div remainder 2)
+  | S _ => boolListFromNatural
+      ((decide ((Nat.modulo remainder 2) = 1)) :: acc) (Nat.div remainder 2)
   end.
-  Obligation 1.
-    exact (Nat.div_lt (S rest) 2 (ltac:(lia)) (ltac:(lia))).
-  Defined.
+Proof.
+  destruct remainder as [|rest]; [reflexivity |].
+  unfold boolListFromNatural.
+  change (boolListFromNatural_aux rest
+      ((decide ((Nat.modulo (S rest) 2) = 1)) :: acc) (Nat.div (S rest) 2) =
+    boolListFromNatural_aux (Nat.div (S rest) 2)
+      ((decide ((Nat.modulo (S rest) 2) = 1)) :: acc) (Nat.div (S rest) 2)).
+  pose proof (Nat.div_lt (S rest) 2 (ltac:(lia)) (ltac:(lia))) as Hdiv.
+  apply boolListFromNatural_aux_fuel; lia.
+Qed.
 
 (* Default values for incomplete pattern matching. *)
 

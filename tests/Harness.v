@@ -23,3 +23,11 @@ Print Assumptions instruction_sem.
 Print Assumptions step.
 Print Assumptions start_transaction.
 Print Assumptions end_transaction.
+
+(* Exercise conversion at transaction-sized values without normalizing a
+   well-founded termination certificate at every recursive step. *)
+Example gas_price_product :
+  @eq _ (word256Mult (Z_to_binary 256 1) (Z_to_binary 256 30000))
+    (Z_to_binary 256 30000).
+Proof. vm_compute. reflexivity. Qed.
+Print Assumptions boolListFromNatural_equation.

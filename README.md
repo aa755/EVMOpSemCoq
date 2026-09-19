@@ -73,3 +73,9 @@ the destruction list from before B's call. A successful B preserves C instead.
 Additional quantified checks cover saved world, storage, gas, logs and refunds,
 and code-deposit failure. This is a machine-level regression, not a proof that
 all transaction semantics agrees with Ethereum.
+
+The conversion implementation subsequently uses structural fuel to avoid
+normalizing large well-founded proof terms during evaluation. Its fuel is the
+input natural number. `boolListFromNatural_aux_fuel` proves independence of any
+sufficient bound, and `boolListFromNatural_equation` proves the original halving
+recurrence without a truncation assumption. These are closed proofs.
