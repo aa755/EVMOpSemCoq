@@ -31,3 +31,16 @@ Example gas_price_product :
     (Z_to_binary 256 30000).
 Proof. vm_compute. reflexivity. Qed.
 Print Assumptions boolListFromNatural_equation.
+
+(* List slicing is on the bytecode and calldata execution paths. *)
+Theorem natural_le_spec m n : @eq _ (nat_lteb m n) true <-> (m <= n)%nat.
+Proof. apply Nat.leb_le. Qed.
+
+Example slice_stops_at_bound :
+  @eq _ (take 2 [10; 20; 30], drop 2 [10; 20; 30]) ([10; 20], [30]).
+Proof. vm_compute. reflexivity. Qed.
+
+Example push2_decodes_two_bytes :
+  @eq _ (program_content (make_program (map word8FromNumeral [97; 1; 0; 0])) 0%Z)
+    (Some (Stack (PUSH_N (map word8FromNumeral [1; 0])))).
+Proof. vm_compute. reflexivity. Qed.

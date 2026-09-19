@@ -209,7 +209,9 @@ Fixpoint nat_ltb (m n: nat): bool :=
       end
   end.
 
-Definition nat_lteb (m n: nat): bool := nat_ltb (S m) n.
+(* The previous translation used [nat_ltb (S m) n], i.e. m+1<n.
+   In particular 0<=0 was false, so splitAtAcc never stopped at its bound. *)
+Definition nat_lteb (m n: nat): bool := Nat.leb m n.
 Definition nat_gtb (m n: nat): bool := nat_ltb n m.
 Definition nat_gteb (m n: nat): bool := nat_lteb n m.
 

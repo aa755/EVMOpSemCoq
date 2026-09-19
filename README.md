@@ -137,3 +137,13 @@ These changes repair the audited legacy paths; they are not a complete Ethereum
 conformance proof or the requested non-interference proof. EIP-7702 is deferred,
 precompiles are outside this task, and no REVERT opcode is added to the early-fork
 model. `Unimplemented` remains explicit rather than being counted as success.
+
+### Natural comparison and slicing
+
+The concrete controller's bytecode check exposed a further inherited harness
+bug: `nat_lteb m n` computed `m + 1 < n`. It now uses `Nat.leb`, with a general
+correctness lemma. Previously `take n xs` consumed all of `xs` and `drop n xs`
+returned `[]`, because the slicing loop never recognized `0 <= 0`. This affected
+PUSH decoding, calldata, and memory helpers. `tests/Harness.v` now checks slicing
+and a PUSH2 followed by STOP. These are additional conformance repairs discovered
+while constructing the concrete non-interference witness.
