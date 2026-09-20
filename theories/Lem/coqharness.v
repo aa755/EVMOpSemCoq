@@ -180,7 +180,7 @@ Fixpoint nat_min (m n: nat): nat :=
     | O => O
     | S m' =>
       match n with
-        | O => S m'
+        | O => O
         | S n' => S (nat_min m' n')
       end
   end.

@@ -165,3 +165,12 @@ remains a compatibility wrapper for instruction-list callers.
 operand positions. Regressions cover PUSH1–PUSH32, all 256 opcode-byte roundtrips,
 raw byte access, truncated PUSH2 value/PC, rejected jumps into data, and a genuine
 following JUMPDEST. The assumption audit and kernel checker include these tests.
+
+### Capped transaction refunds
+
+The whole-chain balance proof exposed an inherited `nat_min` base-case bug:
+`nat_min m 0` returned `m`, so the function always returned its first argument.
+Settlement therefore ignored its half-consumed-gas refund cap. The zero case
+now returns zero. `tests/Harness.v` proves equality with `Nat.min` for all
+arguments and checks zero and nonzero settlement-sized caps. `nat_min`'s only
+direct operational caller is fee settlement in `end_transaction`.
