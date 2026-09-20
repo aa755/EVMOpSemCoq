@@ -431,8 +431,8 @@ Definition step  (net : network )  : global_state  -> global_state :=
     match ((g_vmstate  global1)) with
           | InstructionToEnvironment act v stuff =>
       match ( act) with | ContractCall args =>
-        if w160Less (callarg_recipient  args) (word160FromNumeral 256%nat) then
-          Unimplemented (* precompiled contracts *) else
+        (* Native precompiles are absent: every recipient, including low
+           addresses, uses the ordinary account call rules below. *)
           let n_state := update_return state (cctx_this  c) v in
           if word256ULT (block_account_balance  (n_state (cctx_this  c)))
                (callarg_value  args) ||

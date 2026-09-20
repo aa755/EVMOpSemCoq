@@ -135,8 +135,11 @@ Reports are written under `_build/`.
 
 These changes repair the audited legacy paths; they are not a complete Ethereum
 conformance proof or the requested non-interference proof. EIP-7702 is deferred,
-precompiles are outside this task, and no REVERT opcode is added to the early-fork
-model. `Unimplemented` remains explicit rather than being counted as success.
+native precompiles are absent, and no REVERT opcode is added to the early-fork
+model. All addresses, including 0–255, are ordinary accounts: CALL executes
+the code stored at its recipient without a low-address dispatch exception.
+`Unimplemented` remains explicit for malformed return frames rather than being
+counted as success.
 
 ### Natural comparison and slicing
 

@@ -60,7 +60,7 @@ if assumptions - allowed:
 with (root / "_build" / "kernel-check.log").open("w") as log:
     subprocess.run(["rocqchk", *loadpath, "EVMOpSemTests.Harness",
                     "EVMOpSemTests.Rollback", "EVMOpSemTests.Transactions",
-                    "EVMOpSemTests.Decoder"],
+                    "EVMOpSemTests.Decoder", "EVMOpSemTests.Calls"],
                    cwd=root, stdout=log, stderr=subprocess.STDOUT, check=True)
 print("Build, operational assumption audit, and kernel checks passed.")
 print("Operational axioms:", ", ".join(sorted(assumptions)))
